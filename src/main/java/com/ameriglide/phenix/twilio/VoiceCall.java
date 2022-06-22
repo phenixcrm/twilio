@@ -4,6 +4,7 @@ import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Contact;
 import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.common.VerifiedCallerId;
+import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.CallDirection;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.http.HttpMethod;
@@ -50,7 +51,7 @@ public class VoiceCall extends TwiMLServlet {
               .method(HttpMethod.GET)
               .answerOnBridge(true)
               .timeout(15)
-              .sip(VoiceStatus.buildSip(called))
+              .sip(TwiMLServlet.buildSip(called))
               .build())
             .build();
         } else {
@@ -61,7 +62,7 @@ public class VoiceCall extends TwiMLServlet {
           info("Outbound %s -> %s", caller.agent().getFullName(), called);
           return new VoiceResponse.Builder()
             .dial(new Dial.Builder()
-              .number(VoiceStatus.buildNumber(called))
+              .number(TwiMLServlet.buildNumber(called))
               .callerId(vCid.getPhoneNumber())
               .build())
             .build();
@@ -105,7 +106,7 @@ public class VoiceCall extends TwiMLServlet {
                 .method(HttpMethod.GET)
                 .answerOnBridge(true)
                 .timeout(15)
-                .sip(VoiceStatus.buildSip(asParty(vCid.getDirect())))
+                .sip(TwiMLServlet.buildSip(asParty(vCid.getDirect())))
                 .build())
               .build();
           } else {

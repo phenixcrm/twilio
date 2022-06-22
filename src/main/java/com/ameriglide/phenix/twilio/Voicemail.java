@@ -1,7 +1,10 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
+import com.ameriglide.phenix.types.CallDirection;
+import com.ameriglide.phenix.types.Resolution;
 import com.twilio.http.HttpMethod;
 import com.twilio.twiml.TwiML;
 import com.twilio.twiml.VoiceResponse;
@@ -9,10 +12,9 @@ import com.twilio.twiml.voice.Record;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import net.inetalliance.funky.Funky;
 import net.inetalliance.funky.StringFun;
 import net.inetalliance.potion.Locator;
-
-import static net.inetalliance.potion.Locator.update;
 
 @WebServlet("/twilio/voicemail")
 public class Voicemail extends TwiMLServlet {
@@ -25,7 +27,7 @@ public class Voicemail extends TwiMLServlet {
         .playBeep(true)
         .method(HttpMethod.POST)
         .action("/twilio/voicemail")
-        .trim(Trim.TRIM_SILENCE)
+        .trim(Record.Trim.TRIM_SILENCE)
         .transcribeCallback("/twilio/voicemail")
         .maxLength(300)
         .build())
