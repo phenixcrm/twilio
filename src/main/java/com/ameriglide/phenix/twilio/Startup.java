@@ -1,6 +1,5 @@
 package com.ameriglide.phenix.twilio;
 
-import io.github.cdimascio.dotenv.Dotenv;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
 import jakarta.servlet.annotation.WebListener;
@@ -26,6 +25,7 @@ import static java.util.Collections.list;
 
 @WebListener
 public class Startup implements ServletContextListener {
+  public static TaskRouter router;
   boolean development;
 
   private static final Supplier<Boolean> dev = Funky.runOnce(()-> System.getProperty("dev") != null);
@@ -36,14 +36,14 @@ public class Startup implements ServletContextListener {
 
 	@Override
   public void contextInitialized(ServletContextEvent sce) {
-    var env = Dotenv.load();
+    router = new TaskRouter(false);
     log.info("Le phénix s'est levé");
     Validator.register(NoLoops.class, new NoLoopsValidator());
     var context = sce.getServletContext();
     var path = context.getContextPath();
     this.development = System.getProperty("dev") != null;
     log.info("Starting up %s for %s", path +"/", development ? "development" : "production");
-    var dbParam = env.get("db");
+    var dbParam = router.env.get("db");
     try {
       final Db db = new Db(new URI(dbParam));
       Class.forName(db.vendor.getDriver());

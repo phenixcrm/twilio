@@ -1,9 +1,6 @@
 package com.ameriglide.phenix.twilio;
 
-import com.ameriglide.phenix.common.Call;
-import com.ameriglide.phenix.common.Contact;
-import com.ameriglide.phenix.common.Leg;
-import com.ameriglide.phenix.common.VerifiedCallerId;
+import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.CallDirection;
 import com.ameriglide.phenix.types.Resolution;
@@ -14,9 +11,11 @@ import com.twilio.twiml.voice.*;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import net.inetalliance.funky.Funky;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.Json;
 import net.inetalliance.types.json.JsonMap;
+import net.inetalliance.types.json.JsonString;
 
 import java.time.LocalDateTime;
 
@@ -83,7 +82,7 @@ public class VoiceCall extends TwiMLServlet {
         } else {
           info("%s is a new inbound call %s->%s", callSid, caller, called);
           var vCid = Locator.$1(VerifiedCallerId.withPhoneNumber(called.endpoint()));
-          if (vCid == null) {
+          if (vCid == null || vCid.isIvr()) {
             call.setDirection(CallDirection.QUEUE);
             // main IVR
             return new VoiceResponse.Builder()
@@ -97,6 +96,7 @@ public class VoiceCall extends TwiMLServlet {
               .say(new Say.Builder().build())
               .build();
           } else if (vCid.isDirect()) {
+            info("DIRECT %s %s->%s", call.sid, caller.endpoint(), vCid.getDirect().getFullName());
             call.setDirection(CallDirection.INBOUND);
             call.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
             info("Inbound %s -> %s", caller.endpoint(), vCid.getDirect().getFullName());
@@ -113,14 +113,34 @@ public class VoiceCall extends TwiMLServlet {
             // straight to task router
             call.setDirection(CallDirection.QUEUE);
             var q = vCid.getQueue();
+            info("ENQUEUE %s %s", call.sid, caller.endpoint());
+            var task = new JsonMap().$("VoiceCall",call.sid);
+            var p = q.getProduct();
+            if(p == null) {
+              var s = q.getSkill();
+              if (s != null) {
+                task.$("type", q.getSkill().getValue());
+              }
+            } else {
+              task.$("type","sales");
+              task.$("product",p.getAbbreviation());
+            }
+            var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
+            if(c != null) {
+              task.$("preferred",
+                Funky.of(Locator.$1(Opportunity.withPreferredAgents(c)))
+                  .map(Opportunity::getAssignedTo)
+                  .map(Agent::getSid)
+                  .map(JsonString::new)
+                  .orElse(JsonString.NULL));
+              }
             return new VoiceResponse.Builder()
               .say(speak(q.getWelcomeMessage()))
               .enqueue(new Enqueue.Builder()
-                .workflowSid(q.getWorkflowSid())
-                .task(new Task.Builder(Json.ugly(new JsonMap().$("VoiceCall", call.sid))).build())
+                .workflowSid(Startup.router.workflow.getSid())
+                .task(new Task.Builder(Json.ugly(task)).build())
                 .build())
               .build();
-
           }
         }
       }
