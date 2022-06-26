@@ -13,9 +13,12 @@ import net.inetalliance.funky.Funky;
 import net.inetalliance.funky.StringFun;
 import net.inetalliance.potion.Locator;
 
-import java.time.temporal.ChronoUnit;
+import java.time.LocalDateTime;
 
+import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static java.time.LocalDateTime.now;
+import static java.time.temporal.ChronoUnit.SECONDS;
+import static net.inetalliance.potion.Locator.update;
 
 @WebServlet("/twilio/voice/status")
 public class VoiceStatus extends TwiMLServlet {
@@ -28,11 +31,9 @@ public class VoiceStatus extends TwiMLServlet {
       }
       var seg = call.getActiveLeg();
       if ("inbound".equals(request.getParameter("Direction"))) {
-        if (seg != null) {
-          Locator.update(call, "VoiceStatus", callCopy -> {
+          update(call, "VoiceStatus", callCopy -> {
             processCallStatusChange(request, call, seg, callCopy);
           });
-        }
       }
 
     } else {
@@ -60,7 +61,7 @@ public class VoiceStatus extends TwiMLServlet {
           return leg;
         });
 
-      Locator.update(call, "VoiceStatus", callCopy -> {
+      update(call, "VoiceStatus", callCopy -> {
         processCallStatusChange(request, call, segment, callCopy);
       });
     }
@@ -68,35 +69,38 @@ public class VoiceStatus extends TwiMLServlet {
   }
 
   private void processCallStatusChange(HttpServletRequest request, Call call, Leg leg, Call callCopy) {
+    var now = LocalDateTime.now();
     switch (request.getParameter("CallStatus")) {
       case "completed" -> {
-        Locator.update(leg, "VoiceStatus", segmentCopy -> {
-          segmentCopy.setEnded(now());
-          if (leg.isAnswered()) {
-            callCopy.setTalkTime(Funky.of(call.getTalkTime()).orElse(0L) + leg.getTalkTime());
-            callCopy.setResolution(Resolution.ANSWERED);
-            info("%s was answered",call.sid);
-          }
-        });
-        if (call.getResolution() == null) {
-          callCopy.setResolution(Resolution.DROPPED);
-          info("%s was dropped",call.sid);
+        if(leg == null) {
+          callCopy.setResolution(DROPPED);
+          callCopy.setDuration(SECONDS.between(call.getCreated(), now));
+          info("%s was dropped", call.sid);
+        } else {
+          update(leg, "VoiceStatus", segmentCopy -> {
+            segmentCopy.setEnded(now());
+            if (leg.isAnswered()) {
+              callCopy.setTalkTime(Funky.of(call.getTalkTime()).orElse(0L) + leg.getTalkTime());
+              callCopy.setResolution(Resolution.ANSWERED);
+              info("%s was answered", call.sid);
+            }
+          });
+          callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
         }
-        callCopy.setDuration(ChronoUnit.SECONDS.between(call.getCreated(), leg.getEnded()));
       }
-      case "in-progress", "answered" -> Locator.update(leg, "VoiceStatus", segmentCopy -> {
+      case "in-progress", "answered" -> update(leg, "VoiceStatus", segmentCopy -> {
         segmentCopy.setAnswered(now());
         info("%s was answered",call.sid);
       });
-      case "no-answer", "busy", "failed" -> Locator.update(leg, "VoiceStatus", legCopy -> {
+      case "no-answer", "busy", "failed" -> update(leg, "VoiceStatus", legCopy -> {
         legCopy.setEnded(now());
-        callCopy.setDuration(ChronoUnit.SECONDS.between(call.getCreated(), legCopy.getEnded()));
-        callCopy.setResolution(Resolution.DROPPED);
+        callCopy.setDuration(SECONDS.between(call.getCreated(), legCopy.getEnded()));
+        callCopy.setResolution(DROPPED);
       });
       default -> {
         info("%s had state %s", call.sid, request.getParameter("CallStatus"));
-        callCopy.setDuration(ChronoUnit.SECONDS.between(call.getCreated(), leg.getEnded()));
-        callCopy.setResolution(Resolution.DROPPED);
+        callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
+        callCopy.setResolution(DROPPED);
       }
     }
   }

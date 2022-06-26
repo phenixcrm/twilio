@@ -140,7 +140,9 @@ public class VoiceCall extends TwiMLServlet {
               .say(speak(q.getWelcomeMessage()))
               .enqueue(new Enqueue.Builder()
                 .workflowSid(Startup.router.workflow.getSid())
-                .task(new Task.Builder(Json.ugly(task)).build())
+                .task(new Task.Builder(Json.ugly(task))
+                  .timeout(120)
+                  .build())
                 .build())
               .build();
           }
