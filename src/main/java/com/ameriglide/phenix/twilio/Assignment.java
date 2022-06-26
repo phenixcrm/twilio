@@ -16,10 +16,20 @@ public class Assignment extends PhenixServlet {
   protected void post(HttpServletRequest request, HttpServletResponse response) throws Exception {
     var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
     var attributes = JsonMap.parse(request.getParameter("TaskAttributes"));
-    log.info("ASSIGN %s %s",attributes.get("call_sid"),attributes.get("caller"), agent.getFullName());
+    var callSid = attributes.get("call_sid");
+    log.info("ASSIGN %s %s", callSid, attributes.get("caller"), agent.getFullName());
+    var reservation = request.getParameter("ReservationSid");
+    Startup.router.conference(callSid, reservation);
     PhenixServlet.respond(response, new JsonMap()
-      .$("instruction","conference")
+      .$("instruction", "call")
+      .$("timeout", 15)
+      .$("record", "record-from-answer")
+      .$("url",
+        Startup.router.getAbsolutePath("/twilio/voice/callAgent",
+          "ReservationSid=%s&Assignment=%s".formatted(reservation,callSid)).toString())
+      .$("statusCallbackUrl", Startup.router.getAbsolutePath("/twilio/voice/callAgent", null).toString())
       .$("to", TwiMLServlet.asParty(agent).sip()));
   }
+
   private static final Log log = Log.getInstance(Assignment.class);
 }

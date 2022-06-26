@@ -113,6 +113,8 @@ public class VoiceCall extends TwiMLServlet {
             // straight to task router
             call.setDirection(CallDirection.QUEUE);
             var q = vCid.getQueue();
+            call.setQueue(q);
+            call.setBusiness(q.getBusiness());
             info("ENQUEUE %s %s", call.sid, caller.endpoint());
             var task = new JsonMap().$("VoiceCall",call.sid);
             var p = q.getProduct();

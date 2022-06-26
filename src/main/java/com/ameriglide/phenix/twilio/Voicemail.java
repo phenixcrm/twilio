@@ -36,7 +36,7 @@ public class Voicemail extends TwiMLServlet {
 
   @Override
   protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
-    Call call = Locator.$(new Call(request.getParameter("CallSid")));
+    var call = Locator.$(new Call(request.getParameter("CallSid")));
     if (call == null) {
       throw new NotFoundException();
     }
@@ -44,15 +44,8 @@ public class Voicemail extends TwiMLServlet {
       if ("completed".equals(request.getParameter("CallStatus"))) {
         Locator.update(call, "Voicemail", copy -> {
           copy.setResolution(Resolution.VOICEMAIL);
-          var duration =
-            Funky.of(request.getParameter("RecordingDuration"))
-              .filter(StringFun::isNotEmpty)
-              .map(Long::parseLong)
-              .orElse(0L);
-          copy.setDuration(Funky.of(call.getDuration()).orElse(0L) + duration);
-          copy.setSilent(copy.getDuration() == 0);
-          copy.setTalkTime(copy.getDuration());
-          copy.setVoicemailSid(request.getParameter("RecordingSid"));
+          updateDuration(request, copy);
+
           if (call.getDirection() == CallDirection.INTERNAL) {
             copy.setBlame(null);
           }
