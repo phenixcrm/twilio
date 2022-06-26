@@ -31,7 +31,7 @@ public class CallAgent extends TwiMLServlet {
         .conference(new com.twilio.twiml.voice.Conference.Builder(request.getParameter("ReservationSid"))
           .statusCallback("/twilio/voice/callAgent")
           .statusCallbackMethod(HttpMethod.GET)
-          .statusCallbackEvents(List.of(Conference.Event.START))
+          .statusCallbackEvents(List.of(Conference.Event.START, Conference.Event.JOIN))
           .endConferenceOnExit(true)
           .build())
         .build())
