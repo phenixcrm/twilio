@@ -13,21 +13,36 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
+import java.util.List;
+
+import static com.twilio.http.HttpMethod.POST;
+import static com.twilio.twiml.voice.Conference.Event.END;
+import static com.twilio.twiml.voice.Conference.Event.START;
+import static com.twilio.twiml.voice.Conference.Record.RECORD_FROM_START;
+import static com.twilio.twiml.voice.Conference.RecordingEvent.COMPLETED;
+import static com.twilio.twiml.voice.Conference.Trim.TRIM_SILENCE;
+
 @WebServlet("/twilio/conference")
 public class Conference extends TwiMLServlet {
   @Override
   protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
     var reservation = request.getParameter("ReservationSid");
+    var task = request.getParameter("TaskSid");
+    var callSid = request.getParameter("CallSid");
     return new VoiceResponse.Builder()
       .say(speak("This call may be recorded for quality assurance purposes"))
       .dial(new Dial.Builder()
         .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
           .endConferenceOnExit(true)
-          .record(com.twilio.twiml.voice.Conference.Record.RECORD_FROM_START)
-          .recordingStatusCallbackEvents(com.twilio.twiml.voice.Conference.RecordingEvent.COMPLETED)
-          .recordingStatusCallbackMethod(HttpMethod.POST)
+          .statusCallbackMethod(HttpMethod.GET)
+          .statusCallbackEvents(List.of(START,END))
+          .statusCallback("/twilio/voice/callAgent?TaskSid=%s&ReservationSid=%s&Assignment=%s"
+            .formatted(task, reservation,callSid))
+          .record(RECORD_FROM_START)
+          .recordingStatusCallbackEvents(COMPLETED)
+          .recordingStatusCallbackMethod(POST)
           .recordingStatusCallback("/twilio/conference")
-          .trim(com.twilio.twiml.voice.Conference.Trim.TRIM_SILENCE)
+          .trim(TRIM_SILENCE)
           .build())
         .build())
       .build();
