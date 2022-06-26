@@ -41,7 +41,8 @@ public class Conference extends TwiMLServlet {
           .record(RECORD_FROM_START)
           .recordingStatusCallbackEvents(COMPLETED)
           .recordingStatusCallbackMethod(POST)
-          .recordingStatusCallback("/twilio/conference")
+          .recordingStatusCallback("/twilio/conference?CallSid=%s&TaskSid=%s"
+            .formatted(callSid, task))
           .trim(TRIM_SILENCE)
           .build())
         .build())
@@ -55,7 +56,9 @@ public class Conference extends TwiMLServlet {
       throw new NotFoundException();
     }
     try {
+      var task = request.getParameter("TaskSid");
       if ("completed".equals(request.getParameter("RecordingStatus"))) {
+        Startup.router.completeTask(task);
         Locator.update(call, "Conference", copy -> {
           copy.setResolution(Resolution.ANSWERED);
           updateDuration(request, copy);

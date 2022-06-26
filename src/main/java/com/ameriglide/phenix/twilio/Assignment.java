@@ -25,6 +25,9 @@ public class Assignment extends PhenixServlet {
     var reservation = request.getParameter("ReservationSid");
     var task = request.getParameter("TaskSid");
     var call = Locator.$(new Call(callSid));
+    Locator.update(call,"Assignment",copy -> {
+      copy.setBlame(agent);
+    });
     var leg = new Leg(call,reservation);
     leg.setAgent(agent);
     leg.setCreated(LocalDateTime.now());
