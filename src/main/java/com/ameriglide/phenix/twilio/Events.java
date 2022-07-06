@@ -20,8 +20,9 @@ public class Events extends TwiMLServlet {
       case "task.cancelled" -> {
         var call = Locator.$(new Call(task.get("VoiceCall")));
         log.info("%s cancelled (%s)", call.sid, request.getParameter("Reason"));
+        Startup.router.sendToVoicemail(call.sid);
         Locator.update(call, "Events", copy -> {
-          copy.setResolution(Resolution.DROPPED);
+          copy.setResolution(Resolution.VOICEMAIL);
         });
       }
     }

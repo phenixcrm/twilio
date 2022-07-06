@@ -16,8 +16,8 @@ import net.inetalliance.potion.Locator;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.toVoicemail;
 
 public class Customer extends Menu.Step {
-  public Customer(Menu menu) {
-    super(menu);
+  public Customer() {
+    super();
   }
 
   @Override
@@ -26,10 +26,11 @@ public class Customer extends Menu.Step {
       .gather(new Gather.Builder()
         .action("/twilio/menu/customer")
         .numDigits(1)
+        .say(TwiMLServlet.speak("Thank you for choosing AmeraGlide! If you have questions about an existing order, " +
+          "or need assistance with shipping or tracking information, please press 1. If you require technical support " +
+          "or need assistance with installation, please press 2. For all other inquiries, please press 3.", 2))
         .build())
-      .say(TwiMLServlet.speak("Thank you for choosing AmeraGlide! If you have questions about an existing order, " +
-        "or need assistance with shipping or tracking information, please press 1. If you require technical support " +
-        "or need assistance with installation, please press 2. For all other inquiries, please press 3.", 2))
+      .redirect(toVoicemail)
       .build();
   }
 
@@ -48,7 +49,7 @@ public class Customer extends Menu.Step {
       case "2" -> VoiceCall.enqueue(builder, caller, call,
         Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(), Source.PHONE);
       default -> {
-        return toVoicemail;
+        return new VoiceResponse.Builder().redirect(toVoicemail).build();
       }
     }
     return builder.build();
