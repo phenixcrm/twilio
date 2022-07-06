@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
+import com.ameriglide.phenix.twilio.menu.Menu;
 import com.ameriglide.phenix.types.CallDirection;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.http.HttpMethod;
@@ -21,6 +22,7 @@ import java.time.LocalDateTime;
 
 @WebServlet("/twilio/voice/call")
 public class VoiceCall extends TwiMLServlet {
+
 
 
   @Override
@@ -85,16 +87,7 @@ public class VoiceCall extends TwiMLServlet {
           if (vCid == null || vCid.isIvr()) {
             call.setDirection(CallDirection.QUEUE);
             // main IVR
-            return new VoiceResponse.Builder()
-              .gather(new Gather.Builder()
-                .action("/twilio/menu/show")
-                .numDigits(1)
-                .timeout(19)
-                .build())
-              .say(speak("Thank you for calling AmeriGlide, your headquarters for Home Safety."))
-              .pause(new Pause.Builder().length(1).build())
-              .say(new Say.Builder().build())
-              .build();
+            return Menu.enter("main", request,response);
           } else if (vCid.isDirect()) {
             info("DIRECT %s %s->%s", call.sid, caller.endpoint(), vCid.getDirect().getFullName());
             call.setDirection(CallDirection.INBOUND);
@@ -110,42 +103,8 @@ public class VoiceCall extends TwiMLServlet {
                 .build())
               .build();
           } else {
-            // straight to task router
-            call.setDirection(CallDirection.QUEUE);
-            var q = vCid.getQueue();
-            call.setSource(vCid.getSource());
-            call.setQueue(q);
-            call.setBusiness(q.getBusiness());
             info("ENQUEUE %s %s", call.sid, caller.endpoint());
-            var task = new JsonMap().$("VoiceCall",call.sid);
-            var p = q.getProduct();
-            if(p == null) {
-              var s = q.getSkill();
-              if (s != null) {
-                task.$("type", q.getSkill().getValue());
-              }
-            } else {
-              task.$("type","sales");
-              task.$("product",p.getAbbreviation());
-            }
-            var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
-            if(c != null) {
-              task.$("preferred",
-                Funky.of(Locator.$1(Opportunity.withPreferredAgents(c)))
-                  .map(Opportunity::getAssignedTo)
-                  .map(Agent::getSid)
-                  .map(JsonString::new)
-                  .orElse(JsonString.NULL));
-              }
-            return new VoiceResponse.Builder()
-              .say(speak(q.getWelcomeMessage()))
-              .enqueue(new Enqueue.Builder()
-                .workflowSid(Startup.router.workflow.getSid())
-                .task(new Task.Builder(Json.ugly(task))
-                  .timeout(120)
-                  .build())
-                .build())
-              .build();
+            return enqueue(new VoiceResponse.Builder(), caller, call,vCid.getQueue(),vCid.getSource()).build();
           }
         }
       }
@@ -154,6 +113,44 @@ public class VoiceCall extends TwiMLServlet {
         Locator.create("VoiceCall", call);
       }
     }
+  }
+
+  public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call call, SkillQueue q,
+                                      Source src) {
+    // straight to task router
+    call.setDirection(CallDirection.QUEUE);
+    call.setQueue(q);
+    call.setSource(src);
+    call.setBusiness(q.getBusiness());
+    var task = new JsonMap().$("VoiceCall",call.sid);
+    var p = q.getProduct();
+    if(p == null) {
+      var s = q.getSkill();
+      if (s != null) {
+        task.$("type", q.getSkill().getValue());
+      }
+    } else {
+      task.$("type","sales");
+      task.$("product",p.getAbbreviation());
+    }
+    var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
+    if(c != null) {
+      task.$("preferred",
+        Funky.of(Locator.$1(Opportunity.withPreferredAgents(c)))
+          .map(Opportunity::getAssignedTo)
+          .map(Agent::getSid)
+          .map(JsonString::new)
+          .orElse(JsonString.NULL));
+    }
+    builder
+      .say(speak(q.getWelcomeMessage()))
+      .enqueue(new Enqueue.Builder()
+        .workflowSid(Startup.router.workflow.getSid())
+        .task(new Task.Builder(Json.ugly(task))
+          .timeout(120)
+          .build())
+        .build());
+    return builder;
   }
 
 
