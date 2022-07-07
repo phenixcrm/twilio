@@ -18,12 +18,15 @@ import java.time.LocalDateTime;
 public class Assignment extends PhenixServlet {
   @Override
   protected void post(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    var reservation = request.getParameter("ReservationSid");
+    var task = request.getParameter("TaskSid");
     var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
     var attributes = JsonMap.parse(request.getParameter("TaskAttributes"));
     var callSid = attributes.get("call_sid");
+    if(callSid == null) {
+      callSid = task;
+    }
     log.info("ASSIGN %s %s", callSid, attributes.get("caller"), agent.getFullName());
-    var reservation = request.getParameter("ReservationSid");
-    var task = request.getParameter("TaskSid");
     var call = Locator.$(new Call(callSid));
     Locator.update(call,"Assignment",copy -> {
       copy.setBlame(agent);
@@ -32,16 +35,20 @@ public class Assignment extends PhenixServlet {
     leg.setAgent(agent);
     leg.setCreated(LocalDateTime.now());
     Locator.create("Assignment",leg);
-    Startup.router.conference(callSid, task, reservation);
-    PhenixServlet.respond(response, new JsonMap()
-      .$("instruction", "call")
-      .$("timeout", 15)
-      .$("record", "record-from-answer")
-      .$("url",
-        Startup.router.getAbsolutePath("/twilio/voice/callAgent",
-          "TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(task,reservation, callSid)).toString())
-      .$("statusCallbackUrl", Startup.router.getAbsolutePath("/twilio/voice/callAgent", null).toString())
-      .$("to", TwiMLServlet.asParty(agent).sip()));
+    if(attributes.containsKey("VoiceCall")) {
+      Startup.router.conference(callSid, task, reservation);
+      PhenixServlet.respond(response, new JsonMap()
+        .$("instruction", "call")
+        .$("timeout", 15)
+        .$("record", "record-from-answer")
+        .$("url",
+          Startup.router.getAbsolutePath("/twilio/voice/callAgent",
+            "TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(task, reservation, callSid)).toString())
+        .$("statusCallbackUrl", Startup.router.getAbsolutePath("/twilio/voice/callAgent", null).toString())
+        .$("to", TwiMLServlet.asParty(agent).sip()));
+    } else if(attributes.containsKey("Lead")) {
+      PhenixServlet.respond(response, new JsonMap().$("instruction","accept"));
+    }
   }
 
   private static final Log log = Log.getInstance(Assignment.class);
