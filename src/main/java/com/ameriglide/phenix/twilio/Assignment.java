@@ -32,6 +32,7 @@ public class Assignment extends PhenixServlet {
     log.info("ASSIGN %s %s", callSid, attributes.get("caller"), agent.getFullName());
     var call = Locator.$(new Call(callSid));
     update(call,"Assignment",copy -> {
+      copy.setAgent(agent);
       copy.setBlame(agent);
     });
     var leg = new Leg(call,reservation);
