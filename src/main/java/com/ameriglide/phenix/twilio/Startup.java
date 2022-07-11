@@ -62,6 +62,8 @@ public class Startup implements ServletContextListener {
 
   @Override
   public void contextDestroyed(ServletContextEvent sce) {
+
+    router.shutdown();
     Locator.detach();
     RedisObjectCache.shutdown();
     log.info("Unregistering JDBC drivers");
