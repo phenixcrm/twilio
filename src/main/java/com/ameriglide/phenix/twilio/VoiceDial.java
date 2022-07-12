@@ -58,6 +58,7 @@ public class VoiceDial extends TwiMLServlet {
           .answerOnBridge(true)
           .timeout(15)
           .number(buildNumber(asParty(new PhoneNumber(called.endpoint()))))
+          .callerId(call.getPhone())
           .build())
         .build();
     }
