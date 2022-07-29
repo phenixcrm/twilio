@@ -23,10 +23,12 @@ import static net.inetalliance.potion.Locator.update;
 @WebServlet("/twilio/voice/status")
 public class VoiceStatus extends TwiMLServlet {
   protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
+    String thisSid = request.getParameter("CallSid");
     if (StringFun.isEmpty(request.getParameter("ParentCallSid"))) {
       // we are operating on the primary call
-      var call = Locator.$(new Call(request.getParameter("CallSid")));
+      var call = Locator.$(new Call(thisSid));
       if (call == null) {
+        log("404: %s".formatted(thisSid));
         throw new NotFoundException();
       }
       var seg = call.getActiveLeg();
@@ -39,10 +41,9 @@ public class VoiceStatus extends TwiMLServlet {
     } else {
       // we have an update on a leg
       var call = Locator.$(new Call(request.getParameter("ParentCallSid")));
-      var legSid = request.getParameter("CallSid");
-      var segment = Funky.of(Locator.$(new Leg(call, legSid)))
+      var segment = Funky.of(Locator.$(new Leg(call, thisSid)))
         .orElseGet(() -> {
-          var leg = new Leg(call, legSid);
+          var leg = new Leg(call, thisSid);
           leg.setCreated(now());
           switch(call.getDirection()) {
             case INBOUND -> {
