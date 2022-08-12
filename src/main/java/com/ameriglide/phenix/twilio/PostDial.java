@@ -30,7 +30,10 @@ public class PostDial extends TwiMLServlet {
         }
       }
     }
-    return null;
+    // sometimes our side is still on the call, so we need to hang up in that case.
+    return new VoiceResponse.Builder()
+      .hangup(hangup)
+      .build();
 
   }
 
