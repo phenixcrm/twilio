@@ -26,7 +26,9 @@ public class PostDial extends TwiMLServlet {
 
         } else {
           info("Redirecting %s to the voicemail of %s", request.getParameter("CallSid"), agent.getFullName());
-          return toVoicemail;
+          return new VoiceResponse.Builder()
+            .redirect(toVoicemail)
+            .build();
         }
       }
     }
