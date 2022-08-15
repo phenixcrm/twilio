@@ -28,7 +28,7 @@ public class VoiceStatus extends TwiMLServlet {
       // we are operating on the primary call
       var call = Locator.$(new Call(thisSid));
       if (call == null) {
-        log("404: %s".formatted(thisSid));
+        info("404: %s".formatted(thisSid));
         throw new NotFoundException();
       }
       var seg = call.getActiveLeg();
