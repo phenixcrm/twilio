@@ -16,7 +16,7 @@ import net.inetalliance.potion.Locator;
 
 import static net.inetalliance.funky.StringFun.isEmpty;
 
-@WebServlet( "/twilio/voice/dial")
+@WebServlet("/twilio/voice/dial")
 public class VoiceDial extends TwiMLServlet {
   @Override
   protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
@@ -56,7 +56,7 @@ public class VoiceDial extends TwiMLServlet {
           .action("/twilio/voice/postDial")
           .method(HttpMethod.GET)
           .answerOnBridge(true)
-          .timeout(15)
+          .timeout(60)
           .number(buildNumber(asParty(new PhoneNumber(called.endpoint()))))
           .callerId(call.getPhone())
           .build())
