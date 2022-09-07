@@ -51,7 +51,6 @@ public class CallAgent extends TwiMLServlet {
     var reservation = request.getParameter("ReservationSid");
     var task = request.getParameter("TaskSid");
     return new VoiceResponse.Builder()
-      .say(speak(call.getQueue().getAnnouncement()))
       .dial(new Dial.Builder()
         .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
           .statusCallback("/twilio/voice/callAgent?Assignment=%s&TaskSid=%s".formatted(call.sid,task))
