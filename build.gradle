@@ -10,7 +10,8 @@ dependencies {
     'org.junit.jupiter:junit-jupiter-engine:5.9.0'
   )
   implementation(
-    project(':common')
+    project(':common'),
+    project(':core')
   )
   implementation(
     'net.inetalliance:potion:6.1-SNAPSHOT',
