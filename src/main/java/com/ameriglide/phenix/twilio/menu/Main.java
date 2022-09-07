@@ -16,8 +16,8 @@ import net.inetalliance.funky.Funky;
 import net.inetalliance.log.Log;
 import net.inetalliance.potion.Locator;
 
+import static com.ameriglide.phenix.servlet.TwiMLServlet.pause;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.speak;
-import static com.ameriglide.phenix.twilio.menu.Menu.PAUSE_1S;
 
 public class Main extends Menu.Step {
 
@@ -27,10 +27,10 @@ public class Main extends Menu.Step {
     return new VoiceResponse.Builder()
       .gather(new Gather.Builder()
         .action("/twilio/menu/main")
+        .pause(pause(3))
         .numDigits(1)
-        .timeout(3)
         .say(speak("Thank you for calling AmeraGlide, your headquarters for Home Safety."))
-        .pause(PAUSE_1S)
+        .pause(pause(1))
         .say(speak("If you are an existing customer, press 1, otherwise, please hold while we connect you to " +
           "our team of mobility specialists."))
         .build())

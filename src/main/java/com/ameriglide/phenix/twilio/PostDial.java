@@ -20,7 +20,7 @@ public class PostDial extends TwiMLServlet {
         if (agent == null) {
           return new VoiceResponse.Builder()
             .say(speak("The party you have dialed, " + called.spoken() + ", does not exist"))
-            .pause(pause)
+            .pause(pause(2))
             .hangup(hangup)
             .build();
 
