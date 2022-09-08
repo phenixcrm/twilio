@@ -2,13 +2,13 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.twiml.TwiML;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.log.Log;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.JsonMap;
 
@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
 
 @WebServlet("/twilio/events")
 public class Events extends TwiMLServlet {
-    private static final Log log = Log.getInstance(Events.class);
+    private static final Log log = new Log();
 
     @Override
     protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
@@ -34,7 +34,7 @@ public class Events extends TwiMLServlet {
                 var task = JsonMap.parse(request.getParameter("TaskAttributes"));
                 if (task.containsKey("VoiceCall")) {
                     var call = Locator.$(new Call(task.get("VoiceCall")));
-                    log.info("%s cancelled (%s)", call.sid, request.getParameter("Reason"));
+                    log.info(() -> "%s cancelled (%s)".formatted(call.sid, request.getParameter("Reason")));
                     Startup.router.sendToVoicemail(call.sid);
                     Locator.update(call, "Events", copy -> {
                         copy.setResolution(Resolution.VOICEMAIL);

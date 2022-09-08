@@ -1,33 +1,31 @@
 plugins {
-  id 'war'
+    id 'war'
 }
 
 dependencies {
-  testImplementation(
-    'org.junit.jupiter:junit-jupiter-api:5.9.0'
-  )
-  testRuntimeOnly(
-    'org.junit.jupiter:junit-jupiter-engine:5.9.0'
-  )
-  implementation(
-    project(':common'),
-    project(':core')
-  )
-  implementation(
-    'net.inetalliance:potion:6.1-SNAPSHOT',
-    'net.inetalliance:types:1.1-SNAPSHOT',
-    'net.inetalliance:util:1.1-SNAPSHOT',
-    'net.inetalliance:cli:1.1-SNAPSHOT',
-    'net.inetalliance:sql:1.1-SNAPSHOT',
-    'net.inetalliance:log:1.1-SNAPSHOT',
-    'net.inetalliance:funky:1.1-SNAPSHOT',
-    'net.inetalliance:validation:1.1-SNAPSHOT',
-    'net.inetalliance.msg:aj:1.1-SNAPSHOT',
-    'org.apache.commons:commons-csv:1.9.0',
-    'net.inetalliance.msg:bjx:6.1-SNAPSHOT',
-    'org.postgresql:postgresql:42.3.6',
-    'jakarta.servlet:jakarta.servlet-api:5.0.0',
-    'jakarta.websocket:jakarta.websocket-api:2.0.0',
-    'com.twilio.sdk:twilio:8.34.0',
-    'io.github.cdimascio:dotenv-java:2.2.4')
+    testImplementation(
+            'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    )
+    testRuntimeOnly(
+            'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+    )
+    implementation(
+            project(':common'),
+            project(':core')
+    )
+    implementation(
+            'net.inetalliance:potion:6.1-SNAPSHOT',
+            'net.inetalliance:types:1.1-SNAPSHOT',
+            'net.inetalliance:util:1.1-SNAPSHOT',
+            'net.inetalliance:cli:1.1-SNAPSHOT',
+            'net.inetalliance:sql:1.1-SNAPSHOT',
+            'net.inetalliance:funky:1.1-SNAPSHOT',
+            'net.inetalliance.msg:aj:1.1-SNAPSHOT',
+            'org.apache.commons:commons-csv:1.9.0',
+            'net.inetalliance.msg:bjx:6.1-SNAPSHOT',
+            'org.postgresql:postgresql:42.5.0',
+            'jakarta.servlet:jakarta.servlet-api:5.0.0',
+            'jakarta.websocket:jakarta.websocket-api:2.0.0',
+            'com.twilio.sdk:twilio:8.35.0',
+            'io.github.cdimascio:dotenv-java:2.2.4')
 }

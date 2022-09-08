@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.twilio.tasks.SyncWorkerStatus;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.annotation.WebListener;
 
@@ -30,7 +31,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
         var secs = ChronoUnit.SECONDS.between(now, nextRun);
         log.info(() -> "Scheduling next midnight logout in %d sec".formatted(secs));
         executor.schedule(() -> {
-            log.info(()->"Automatically logging out active workers");
+            log.info(() -> "Automatically logging out active workers");
             Startup.router.byAgent
                     .entrySet()
                     .stream()
@@ -48,6 +49,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
     @Override
     public void contextInitialized(final ServletContextEvent sce) {
         super.contextInitialized(sce);
+        new SyncWorkerStatus(router).exec();
         schedule();
 
     }
@@ -55,6 +57,9 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
         super.contextDestroyed(sce);
-        executor.shutdown();
+        var running = executor.shutdownNow();
+        running.forEach(r ->
+                log.info(() -> "shutdown runnable: %s".formatted(r.getClass().getName())));
+
     }
 }

@@ -1,16 +1,15 @@
 package com.ameriglide.phenix.twilio.menu;
 
+import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.BadRequestException;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.twilio.twiml.TwiML;
 import com.twilio.twiml.VoiceResponse;
-import com.twilio.twiml.voice.Pause;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.funky.Funky;
-import net.inetalliance.log.Log;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -38,7 +37,7 @@ public class Menu extends TwiMLServlet {
   });
   public static VoiceResponse enter(final String step, final HttpServletRequest request,
                                     final HttpServletResponse response) {
-    log.info("Entering menu %s", step);
+    log.info(()->"Entering menu %s".formatted(step));
     var steps = menus.get();
     return Funky.of(steps.get(step))
       .orElseThrow(()->new NotFoundException("Could not find menu " + step))
@@ -49,7 +48,6 @@ public class Menu extends TwiMLServlet {
 
   private static final Function<String,Optional<Matcher>> matcher =
     Funky.matcher(Pattern.compile("/twilio/menu/(.*)"));
-  public static final Pause PAUSE_1S = new Pause.Builder().length(1).build();
 
   @Override
   protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
@@ -66,5 +64,5 @@ public class Menu extends TwiMLServlet {
     return null;
   }
 
-  private static final Log log = Log.getInstance(Menu.class);
+  private static final Log log = new Log();
 }

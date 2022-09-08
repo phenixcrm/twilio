@@ -3,6 +3,7 @@ package com.ameriglide.phenix.twilio.menu;
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
+import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.twilio.VoiceCall;
@@ -13,7 +14,6 @@ import com.twilio.twiml.voice.Redirect;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.funky.Funky;
-import net.inetalliance.log.Log;
 import net.inetalliance.potion.Locator;
 
 import static com.ameriglide.phenix.servlet.TwiMLServlet.pause;
@@ -23,7 +23,7 @@ public class Main extends Menu.Step {
 
   @Override
   public VoiceResponse gather(HttpServletRequest request, HttpServletResponse response) {
-    log.info("Gathering main menu input");
+    log.info(()->"Gathering main menu input");
     return new VoiceResponse.Builder()
       .gather(new Gather.Builder()
         .action("/twilio/menu/main")
@@ -40,7 +40,7 @@ public class Main extends Menu.Step {
 
   @Override
   public VoiceResponse process(HttpServletRequest request, HttpServletResponse response) {
-    log.info("Processing main menu input");
+    log.info(()->"Processing main menu input");
     var callSid = request.getParameter("CallSid");
     var caller = TwiMLServlet.asParty(request, "Caller");
     var call = Locator.$(new Call(callSid));
@@ -69,5 +69,5 @@ public class Main extends Menu.Step {
       }
     }
   }
-  private static final Log log = Log.getInstance(Main.class);
+  private static final Log log = new Log();
 }
