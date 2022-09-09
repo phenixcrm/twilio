@@ -15,6 +15,7 @@ import net.inetalliance.potion.Locator;
 
 import java.util.List;
 
+import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.twilio.http.HttpMethod.POST;
 import static com.twilio.twiml.voice.Conference.Event.END;
 import static com.twilio.twiml.voice.Conference.Event.START;
@@ -24,54 +25,55 @@ import static com.twilio.twiml.voice.Conference.Trim.TRIM_SILENCE;
 
 @WebServlet("/twilio/conference")
 public class Conference extends TwiMLServlet {
-  @Override
-  protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
-    var reservation = request.getParameter("ReservationSid");
-    var task = request.getParameter("TaskSid");
-    var callSid = request.getParameter("CallSid");
-    return new VoiceResponse.Builder()
-      .say(speak("This call may be recorded for quality assurance purposes"))
-      .dial(new Dial.Builder()
-        .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
-          .endConferenceOnExit(true)
-          .statusCallbackMethod(HttpMethod.GET)
-          .statusCallbackEvents(List.of(START,END))
-          .statusCallback("/twilio/voice/callAgent?TaskSid=%s&ReservationSid=%s&Assignment=%s"
-            .formatted(task, reservation,callSid))
-          .record(RECORD_FROM_START)
-          .recordingStatusCallbackEvents(COMPLETED)
-          .recordingStatusCallbackMethod(POST)
-          .recordingStatusCallback("/twilio/conference?CallSid=%s&TaskSid=%s"
-            .formatted(callSid, task))
-          .trim(TRIM_SILENCE)
-          .build())
-        .build())
-      .build();
-  }
+    @Override
+    protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
+        var call = Locator.$(new Call(request.getParameter("CallSid")));
+        if (call==null) {
+            throw new NotFoundException();
+        }
+        try {
+            var task = request.getParameter("TaskSid");
+            if ("completed".equals(request.getParameter("RecordingStatus"))) {
+                router.completeTask(task);
+                Locator.update(call, "Conference", copy -> {
+                    copy.setResolution(Resolution.ANSWERED);
+                    updateDuration(request, copy);
+                    info("%s call recorded", copy.sid);
+                });
+            } else {
+                info("%s Conference changed status to %s", call.sid, request.getParameter("CallStatus"));
+            }
+        } catch (Throwable t) {
+            error(t);
+        }
+        return null;
+    }
 
-  @Override
-  protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
-    var call = Locator.$(new Call(request.getParameter("CallSid")));
-    if (call == null) {
-      throw new NotFoundException();
+    @Override
+    protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        var reservation = request.getParameter("ReservationSid");
+        var task = request.getParameter("TaskSid");
+        var callSid = request.getParameter("CallSid");
+        return new VoiceResponse.Builder()
+                .say(speak("This call may be recorded for quality assurance purposes"))
+                .dial(new Dial.Builder()
+                        .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
+                                .endConferenceOnExit(true)
+                                .statusCallbackMethod(HttpMethod.GET)
+                                .statusCallbackEvents(List.of(START, END))
+                                .statusCallback(router.getAbsolutePath(
+                                        "/twilio/voice/callAgent?TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(
+                                                task, reservation, callSid), null))
+                                .record(RECORD_FROM_START)
+                                .recordingStatusCallbackEvents(COMPLETED)
+                                .recordingStatusCallbackMethod(POST)
+                                .recordingStatusCallback(router.getAbsolutePath(
+                                        ("/twilio/conference?CallSid=%s&TaskSid=%s").formatted(callSid, task), null))
+                                .trim(TRIM_SILENCE)
+                                .build())
+                        .build())
+                .build();
     }
-    try {
-      var task = request.getParameter("TaskSid");
-      if ("completed".equals(request.getParameter("RecordingStatus"))) {
-        Startup.router.completeTask(task);
-        Locator.update(call, "Conference", copy -> {
-          copy.setResolution(Resolution.ANSWERED);
-          updateDuration(request, copy);
-          info("%s call recorded", copy.sid);
-        });
-      } else {
-        info("%s Conference changed status to %s", call.sid, request.getParameter("CallStatus"));
-      }
-    } catch (Throwable t) {
-      error(t);
-    }
-    return null;
-  }
 
 
 }

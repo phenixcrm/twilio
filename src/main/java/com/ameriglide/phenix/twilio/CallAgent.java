@@ -17,48 +17,52 @@ import net.inetalliance.potion.Locator;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import static com.ameriglide.phenix.servlet.Startup.router;
+
 @WebServlet("/twilio/voice/callAgent")
 public class CallAgent extends TwiMLServlet {
-  @Override
-  protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
-    var call = Locator.$(new Call(request.getParameter("Assignment")));
-    var leg = Locator.$(new Leg(request.getParameter("FriendlyName")));
-    var task = request.getParameter("TaskSid");
+    @Override
+    protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
+        var call = Locator.$(new Call(request.getParameter("Assignment")));
+        var reservation = request.getParameter("ReservationSid");
+        var task = request.getParameter("TaskSid");
+        return new VoiceResponse.Builder()
+                .dial(new Dial.Builder()
+                        .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
+                                .statusCallback(router.getAbsolutePath(
+                                        "/twilio/voice/callAgent?Assignment=%s&TaskSid=%s".formatted(call.sid, task),
+                                        null))
+                                .statusCallbackMethod(HttpMethod.GET)
+                                .statusCallbackEvents(List.of(Conference.Event.START, Conference.Event.JOIN))
+                                .endConferenceOnExit(true)
+                                .build())
+                        .build())
+                .build();
+    }
 
-    switch(request.getParameter("StatusCallbackEvent")) {
-      case "conference-start" -> {
-        Startup.router.acceptReservation(task, leg.sid);
-        Locator.update(call, "CallAgent", copy -> {
-          copy.setAgent(leg.getAgent());
-        });
-        Locator.update(leg, "CallAgent", copy -> {
-          copy.setAnswered(LocalDateTime.now());
-        });
-      }
-        case "conference-end" -> {
-          Locator.update(call, "CallAgent", copy -> {
-            copy.setResolution(Resolution.ANSWERED);
-          });
+    @Override
+    protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        var call = Locator.$(new Call(request.getParameter("Assignment")));
+        var leg = Locator.$(new Leg(request.getParameter("FriendlyName")));
+        var task = request.getParameter("TaskSid");
+
+        switch (request.getParameter("StatusCallbackEvent")) {
+            case "conference-start" -> {
+                router.acceptReservation(task, leg.sid);
+                Locator.update(call, "CallAgent", copy -> {
+                    copy.setAgent(leg.getAgent());
+                });
+                Locator.update(leg, "CallAgent", copy -> {
+                    copy.setAnswered(LocalDateTime.now());
+                });
+            }
+            case "conference-end" -> {
+                Locator.update(call, "CallAgent", copy -> {
+                    copy.setResolution(Resolution.ANSWERED);
+                });
+            }
+
         }
-
-      }
-    return null;
-  }
-
-  @Override
-  protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
-    var call = Locator.$(new Call(request.getParameter("Assignment")));
-    var reservation = request.getParameter("ReservationSid");
-    var task = request.getParameter("TaskSid");
-    return new VoiceResponse.Builder()
-      .dial(new Dial.Builder()
-        .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
-          .statusCallback("/twilio/voice/callAgent?Assignment=%s&TaskSid=%s".formatted(call.sid,task))
-          .statusCallbackMethod(HttpMethod.GET)
-          .statusCallbackEvents(List.of(Conference.Event.START, Conference.Event.JOIN))
-          .endConferenceOnExit(true)
-          .build())
-        .build())
-      .build();
-  }
+        return null;
+    }
 }
