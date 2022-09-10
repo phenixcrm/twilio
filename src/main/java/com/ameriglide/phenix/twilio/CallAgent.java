@@ -41,7 +41,7 @@ public class CallAgent extends TwiMLServlet {
     }
 
     @Override
-    protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
         var call = Locator.$(new Call(request.getParameter("Assignment")));
         var leg = Locator.$(new Leg(request.getParameter("FriendlyName")));
         var task = request.getParameter("TaskSid");
@@ -56,11 +56,9 @@ public class CallAgent extends TwiMLServlet {
                     copy.setAnswered(LocalDateTime.now());
                 });
             }
-            case "conference-end" -> {
-                Locator.update(call, "CallAgent", copy -> {
-                    copy.setResolution(Resolution.ANSWERED);
-                });
-            }
+            case "conference-end" -> Locator.update(call, "CallAgent", copy -> {
+                copy.setResolution(Resolution.ANSWERED);
+            });
 
         }
         return null;

@@ -1,6 +1,7 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.menu.Menu;
 import com.ameriglide.phenix.types.CallDirection;
@@ -14,7 +15,6 @@ import com.twilio.twiml.voice.Task;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.funky.Funky;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.Json;
 import net.inetalliance.types.json.JsonMap;
@@ -136,7 +136,7 @@ public class VoiceCall extends TwiMLServlet {
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c != null) {
       task.$("preferred",
-        Funky.of(Locator.$1(Opportunity.withPreferredAgents(c)))
+        Optionals.of(Locator.$1(Opportunity.withPreferredAgents(c)))
           .map(Opportunity::getAssignedTo)
           .map(Agent::getSid)
           .map(JsonString::new)

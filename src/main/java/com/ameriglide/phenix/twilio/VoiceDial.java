@@ -16,8 +16,8 @@ import net.inetalliance.potion.Locator;
 
 import java.nio.charset.StandardCharsets;
 
+import static com.ameriglide.phenix.core.Strings.isEmpty;
 import static java.net.URLDecoder.decode;
-import static net.inetalliance.funky.StringFun.isEmpty;
 
 @WebServlet("/twilio/voice/dial")
 public class VoiceDial extends TwiMLServlet {

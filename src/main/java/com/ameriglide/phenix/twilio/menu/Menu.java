@@ -1,6 +1,9 @@
 package com.ameriglide.phenix.twilio.menu;
 
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.core.Strings;
+import com.ameriglide.phenix.core.Suppliers;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.BadRequestException;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
@@ -9,7 +12,6 @@ import com.twilio.twiml.VoiceResponse;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.funky.Funky;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +30,7 @@ public class Menu extends TwiMLServlet {
 
   }
 
-  private static final Supplier<Map<String,Step>> menus = Funky.runOnce(()-> {
+  private static final Supplier<Map<String,Step>> menus = Suppliers.memoize(()-> {
     var steps = new HashMap<String,Step>(2);
     steps.put("main", new Main());
     steps.put("customer", new Customer());
@@ -39,7 +41,7 @@ public class Menu extends TwiMLServlet {
                                     final HttpServletResponse response) {
     log.info(()->"Entering menu %s".formatted(step));
     var steps = menus.get();
-    return Funky.of(steps.get(step))
+    return Optionals.of(steps.get(step))
       .orElseThrow(()->new NotFoundException("Could not find menu " + step))
       .gather(request, response);
   }
@@ -47,7 +49,7 @@ public class Menu extends TwiMLServlet {
 
 
   private static final Function<String,Optional<Matcher>> matcher =
-    Funky.matcher(Pattern.compile("/twilio/menu/(.*)"));
+    Strings.matcher(Pattern.compile("/twilio/menu/(.*)"));
 
   @Override
   protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
@@ -55,7 +57,7 @@ public class Menu extends TwiMLServlet {
     var m = matcher.apply(request.getRequestURI()).orElseThrow(()->
       new BadRequestException("request did not match /twilio/menu/.*"));
     var s = m.group(1);
-    var step = Funky.of(steps.get(s)).orElseThrow(()->new NotFoundException("no menu for " + s));
+    var step = Optionals.of(steps.get(s)).orElseThrow(()->new NotFoundException("no menu for " + s));
     return step.process(request,response);
   }
 

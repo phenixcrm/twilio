@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.types.Resolution;
@@ -9,12 +10,11 @@ import com.twilio.twiml.TwiML;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.funky.Funky;
-import net.inetalliance.funky.StringFun;
 import net.inetalliance.potion.Locator;
 
 import java.time.LocalDateTime;
 
+import static com.ameriglide.phenix.core.Strings.isEmpty;
 import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static java.time.LocalDateTime.now;
 import static java.time.temporal.ChronoUnit.SECONDS;
@@ -24,7 +24,7 @@ import static net.inetalliance.potion.Locator.update;
 public class VoiceStatus extends TwiMLServlet {
   protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
     String thisSid = request.getParameter("CallSid");
-    if (StringFun.isEmpty(request.getParameter("ParentCallSid"))) {
+    if (isEmpty(request.getParameter("ParentCallSid"))) {
       // we are operating on the primary call
       var call = Locator.$(new Call(thisSid));
       if (call == null) {
@@ -33,7 +33,7 @@ public class VoiceStatus extends TwiMLServlet {
       }
       var seg = call.getActiveLeg();
       if ("inbound".equals(request.getParameter("Direction"))) {
-          update(call, "VoiceStatus", callCopy -> {
+          Locator.update(call, "VoiceStatus", callCopy -> {
             processCallStatusChange(request, call, seg, callCopy);
           });
       }
@@ -41,7 +41,7 @@ public class VoiceStatus extends TwiMLServlet {
     } else {
       // we have an update on a leg
       var call = Locator.$(new Call(request.getParameter("ParentCallSid")));
-      var segment = Funky.of(Locator.$(new Leg(call, thisSid)))
+      var segment = Optionals.of(Locator.$(new Leg(call, thisSid)))
         .orElseGet(() -> {
           var leg = new Leg(call, thisSid);
           leg.setCreated(now());
@@ -62,7 +62,7 @@ public class VoiceStatus extends TwiMLServlet {
           return leg;
         });
 
-      update(call, "VoiceStatus", callCopy -> {
+      Locator.update(call, "VoiceStatus", callCopy -> {
         processCallStatusChange(request, call, segment, callCopy);
       });
     }
@@ -78,10 +78,10 @@ public class VoiceStatus extends TwiMLServlet {
           callCopy.setDuration(SECONDS.between(call.getCreated(), now));
           info("%s was dropped", call.sid);
         } else {
-          update(leg, "VoiceStatus", segmentCopy -> {
+          Locator.update(leg, "VoiceStatus", segmentCopy -> {
             segmentCopy.setEnded(now());
             if (leg.isAnswered()) {
-              callCopy.setTalkTime(Funky.of(call.getTalkTime()).orElse(0L) + leg.getTalkTime());
+              callCopy.setTalkTime(Optionals.of(call.getTalkTime()).orElse(0L) + leg.getTalkTime());
               callCopy.setResolution(Resolution.ANSWERED);
               info("%s was answered", call.sid);
             }
@@ -89,11 +89,11 @@ public class VoiceStatus extends TwiMLServlet {
           callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
         }
       }
-      case "in-progress", "answered" -> update(leg, "VoiceStatus", segmentCopy -> {
+      case "in-progress", "answered" -> Locator.update(leg, "VoiceStatus", segmentCopy -> {
         segmentCopy.setAnswered(now());
         info("%s was answered",call.sid);
       });
-      case "no-answer", "busy", "failed" -> update(leg, "VoiceStatus", legCopy -> {
+      case "no-answer", "busy", "failed" -> Locator.update(leg, "VoiceStatus", legCopy -> {
         legCopy.setEnded(now());
         callCopy.setDuration(SECONDS.between(call.getCreated(), legCopy.getEnded()));
         callCopy.setResolution(DROPPED);

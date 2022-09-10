@@ -1,6 +1,8 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.types.CallDirection;
@@ -12,10 +14,9 @@ import com.twilio.twiml.voice.Record;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.funky.Funky;
-import net.inetalliance.funky.StringFun;
 import net.inetalliance.potion.Locator;
 
+import static com.ameriglide.phenix.core.Strings.isNotEmpty;
 import static com.ameriglide.phenix.servlet.Startup.router;
 
 @WebServlet("/twilio/voicemail")
@@ -35,12 +36,12 @@ public class Voicemail extends TwiMLServlet {
                     if (call.getDirection()==CallDirection.INTERNAL) {
                         copy.setBlame(null);
                     }
-                    Funky
+                    Optionals
                             .of(request.getParameter("TranscriptionText"))
-                            .filter(StringFun::isNotEmpty)
+                            .filter(Strings::isNotEmpty)
                             .ifPresent(copy::setTranscription);
                     info("%s voicemail recorded%s", copy.sid,
-                            StringFun.isNotEmpty(copy.getTranscription()) ? " transcribed":"");
+                            isNotEmpty(copy.getTranscription()) ? " transcribed":"");
                 });
             } else {
                 info("%s voicemail changed status to %s", call.sid, request.getParameter("CallStatus"));

@@ -4,6 +4,7 @@ import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.twilio.VoiceCall;
@@ -13,7 +14,6 @@ import com.twilio.twiml.voice.Gather;
 import com.twilio.twiml.voice.Redirect;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import net.inetalliance.funky.Funky;
 import net.inetalliance.potion.Locator;
 
 import static com.ameriglide.phenix.servlet.TwiMLServlet.pause;
@@ -48,7 +48,7 @@ public class Main extends Menu.Step {
       throw new NotFoundException("No call found for " + callSid);
     }
     var builder = new VoiceResponse.Builder();
-    var digits = Funky.of(request.getParameter("digits")).orElse("0");
+    var digits = Optionals.of(request.getParameter("digits")).orElse("0");
 
     switch (digits) {
       case "1" -> {
