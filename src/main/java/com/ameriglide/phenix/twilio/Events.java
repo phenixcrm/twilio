@@ -21,36 +21,40 @@ public class Events extends TwiMLServlet {
 
     @Override
     protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
-        switch (request.getParameter("EventType")) {
-            case "worker.activity.update" -> {
-                var from = Startup.router.bySid.get(request.getParameter("WorkerPreviousActivitySid"));
-                var to = Startup.router.bySid.get(request.getParameter("WorkerActivitySid"));
-                var workerSid = request.getParameter("WorkerSid");
-                info("%s %s->%s", Locator.$1(Agent.withSid(workerSid)).getFullName(), from.getFriendlyName(),
-                        to.getFriendlyName());
-                Startup.router.byAgent.put(workerSid, Startup.router.available.equals(to));
-            }
-            case "task.cancelled" -> {
-                var task = JsonMap.parse(request.getParameter("TaskAttributes"));
-                if (task.containsKey("VoiceCall")) {
-                    var call = Locator.$(new Call(task.get("VoiceCall")));
-                    log.info(() -> "%s cancelled (%s)".formatted(call.sid, request.getParameter("Reason")));
-                    Startup.router.sendToVoicemail(call.sid);
-                    Locator.update(call, "Events", copy -> {
-                        copy.setResolution(Resolution.VOICEMAIL);
-                    });
-                } else if (task.containsKey("Lead")) {
-                    var call = Locator.$(new Call(request.getParameter("TaskSid")));
-                    Locator.update(call, "Events", copy -> {
-                        copy.setResolution(Resolution.DROPPED);
-                        copy.setBlame(Agent.system());
-                        copy.setDuration(ChronoUnit.SECONDS.between(copy.getCreated(), LocalDateTime.now()));
-                        copy.setTalkTime(0);
-                    });
+        try {
+            switch (request.getParameter("EventType")) {
+                case "worker.activity.update" -> {
+                    var from = Startup.router.bySid.get(request.getParameter("WorkerPreviousActivitySid"));
+                    var to = Startup.router.bySid.get(request.getParameter("WorkerActivitySid"));
+                    var workerSid = request.getParameter("WorkerSid");
+                    info("%s %s->%s", Locator.$1(Agent.withSid(workerSid)).getFullName(), from.getFriendlyName(), to.getFriendlyName());
+                    Startup.router.byAgent.put(workerSid, Startup.router.available.equals(to));
+                }
+                case "task.cancelled" -> {
+                    var task = JsonMap.parse(request.getParameter("TaskAttributes"));
+                    if (task.containsKey("VoiceCall")) {
+                        var call = Locator.$(new Call(task.get("VoiceCall")));
+                        log.info(() -> "%s cancelled (%s)".formatted(call.sid, request.getParameter("Reason")));
+                        Startup.router.sendToVoicemail(call.sid);
+                        Locator.update(call, "Events", copy -> {
+                            copy.setResolution(Resolution.VOICEMAIL);
+                        });
+                    } else if (task.containsKey("Lead")) {
+                        var call = Locator.$(new Call(request.getParameter("TaskSid")));
+                        Locator.update(call, "Events", copy -> {
+                            copy.setResolution(Resolution.DROPPED);
+                            copy.setBlame(Agent.system());
+                            copy.setDuration(ChronoUnit.SECONDS.between(copy.getCreated(), LocalDateTime.now()));
+                            copy.setTalkTime(0);
+                        });
+                    }
                 }
             }
+            return null;
+        } catch (Throwable t) {
+            log.error(t);
+            throw t;
         }
-        return null;
 
     }
 
