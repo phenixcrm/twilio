@@ -1,8 +1,8 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
+import com.ameriglide.phenix.core.ExecutorServices;
 import com.ameriglide.phenix.core.Log;
-import com.ameriglide.phenix.servlet.PhenixServlet;
 import com.ameriglide.phenix.twilio.tasks.SyncWorkerStatus;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.annotation.WebListener;
@@ -58,7 +58,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
         super.contextDestroyed(sce);
-        PhenixServlet.shutdown("Midnight Logout",executor);
+        ExecutorServices.shutdown("Midnight Logout",executor);
 
     }
 }
