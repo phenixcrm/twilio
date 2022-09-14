@@ -40,7 +40,7 @@ public class Menu extends TwiMLServlet {
   });
   public static VoiceResponse enter(final String step, final HttpServletRequest request,
                                     final HttpServletResponse response) {
-    log.debug(()->"Entering menu %s".formatted(step));
+    log.debug(()->"%s Entering menu %s".formatted(request.getParameter("CallSid"),step));
     var steps = menus.get();
     return Optionals.of(steps.get(step))
       .orElseThrow(()->new NotFoundException("Could not find menu " + step))

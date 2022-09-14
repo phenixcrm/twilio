@@ -23,7 +23,7 @@ public class Main extends Menu.Step {
 
   @Override
   public VoiceResponse gather(HttpServletRequest request, HttpServletResponse response) {
-    log.debug(()->"Gathering main menu input");
+    log.trace(()->"%s Gathering main menu input".formatted(request.getParameter("CallSid")));
     return new VoiceResponse.Builder()
       .gather(new Gather.Builder()
         .action("/twilio/menu/main")
@@ -40,7 +40,8 @@ public class Main extends Menu.Step {
 
   @Override
   public VoiceResponse process(HttpServletRequest request, HttpServletResponse response) {
-    log.debug(()->"Processing main menu input");
+    var digits = Optionals.of(request.getParameter("Digits")).orElse("0");
+    log.debug(()->"%s Processing main menu input (%s)".formatted(request.getParameter("CallSid"),digits));
     var callSid = request.getParameter("CallSid");
     var caller = TwiMLServlet.asParty(request, "Caller");
     var call = Locator.$(new Call(callSid));
@@ -48,7 +49,6 @@ public class Main extends Menu.Step {
       throw new NotFoundException("No call found for " + callSid);
     }
     var builder = new VoiceResponse.Builder();
-    var digits = Optionals.of(request.getParameter("Digits")).orElse("0");
 
     switch (digits) {
       case "1" -> {
