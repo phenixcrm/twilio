@@ -25,7 +25,7 @@ public class Customer extends Menu.Step {
     @Override
     VoiceResponse gather(HttpServletRequest request, HttpServletResponse response) {
         var now = LocalDateTime.now();
-        if (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.isAfter(now.withHour(9))) {
+        if (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.isAfter(now.withHour(21))) {
             return new VoiceResponse.Builder()
                     .say(speak("We are currently closed. Our business hours are Monday through Saturday, 8AM "
                             + "until 9PM eastern standard time. Please leave a message, and we will return your call "
