@@ -34,6 +34,7 @@ public class Conference extends TwiMLServlet {
         var task = request.getParameter("TaskSid");
         var callSid = request.getParameter("CallSid");
         log.debug(()->"%s:%s creating conference".formatted(task,reservation));
+        String qs = "TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(task, reservation, callSid);
         respond(response, new VoiceResponse.Builder()
                 .dial(new Dial.Builder()
                         .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
@@ -41,13 +42,12 @@ public class Conference extends TwiMLServlet {
                                 .statusCallbackMethod(HttpMethod.GET)
                                 .statusCallbackEvents(List.of(START, END))
                                 .statusCallback(router.getAbsolutePath(
-                                        "/twilio/voice/callAgent","TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(
-                                                task, reservation, callSid)))
+                                        "/twilio/voice/callAgent", qs))
                                 .record(RECORD_FROM_START)
                                 .recordingStatusCallbackEvents(COMPLETED)
                                 .recordingStatusCallbackMethod(POST)
                                 .recordingStatusCallback(router.getAbsolutePath(
-                                        ("/twilio/conference?CallSid=%s&TaskSid=%s").formatted(callSid, task), null))
+                                        "/twilio/conference","CallSid=%s&TaskSid=%s".formatted(callSid, task)))
                                 .trim(TRIM_SILENCE)
                                 .build())
                         .build())
