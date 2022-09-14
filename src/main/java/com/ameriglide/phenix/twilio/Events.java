@@ -38,7 +38,7 @@ public class Events extends TwiMLServlet {
                             from.getFriendlyName(), to.getFriendlyName()));
                     Startup.router.byAgent.put(workerSid, Startup.router.available.equals(to));
                 }
-                case "task.cancelled" -> {
+                case "task.canceled" -> {
                     var task = JsonMap.parse(request.getParameter("TaskAttributes"));
                     if (task.containsKey("VoiceCall")) {
                         var call = Locator.$(new Call(task.get("VoiceCall")));
