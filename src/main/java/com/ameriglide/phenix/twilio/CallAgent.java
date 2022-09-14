@@ -29,9 +29,8 @@ public class CallAgent extends TwiMLServlet {
         return new VoiceResponse.Builder()
                 .dial(new Dial.Builder()
                         .conference(new com.twilio.twiml.voice.Conference.Builder(reservation)
-                                .statusCallback(router.getAbsolutePath(
-                                        "/twilio/voice/callAgent?Assignment=%s&TaskSid=%s".formatted(call.sid, task),
-                                        null))
+                                .statusCallback(router.getAbsolutePath("/twilio/voice/callAgent",
+                                        "Assignment=%s&TaskSid=%s".formatted(call.sid, task)))
                                 .statusCallbackMethod(HttpMethod.GET)
                                 .statusCallbackEvents(List.of(Conference.Event.START, Conference.Event.JOIN))
                                 .endConferenceOnExit(true)
@@ -43,7 +42,7 @@ public class CallAgent extends TwiMLServlet {
     @Override
     protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
         var call = Locator.$(new Call(request.getParameter("Assignment")));
-        var leg = Locator.$(new Leg(request.getParameter("FriendlyName")));
+        var leg = Locator.$(new Leg(request.getParameter("ReservationSid")));
         var task = request.getParameter("TaskSid");
 
         switch (request.getParameter("StatusCallbackEvent")) {

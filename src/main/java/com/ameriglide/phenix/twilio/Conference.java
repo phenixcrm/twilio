@@ -27,9 +27,10 @@ import static com.twilio.twiml.voice.Conference.Trim.TRIM_SILENCE;
 public class Conference extends TwiMLServlet {
     @Override
     protected TwiML postResponse(HttpServletRequest request, HttpServletResponse response) {
-        var call = Locator.$(new Call(request.getParameter("CallSid")));
+        var sid = request.getParameter("CallSid");
+        var call = Locator.$(new Call(sid));
         if (call==null) {
-            throw new NotFoundException();
+            throw new NotFoundException("No call sid %s".formatted(sid));
         }
         try {
             var task = request.getParameter("TaskSid");
