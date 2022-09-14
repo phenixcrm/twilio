@@ -2,10 +2,10 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.twilio.http.HttpMethod;
-import com.twilio.twiml.TwiML;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.type.PhoneNumber;
@@ -21,8 +21,10 @@ import static java.net.URLDecoder.decode;
 
 @WebServlet("/twilio/voice/dial")
 public class VoiceDial extends TwiMLServlet {
+    private static final Log log = new Log();
+
     @Override
-    protected TwiML getResponse(HttpServletRequest request, HttpServletResponse response) {
+    protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
         var agent = request.getParameter("agent");
         var number = decode(request.getParameter("number"), StandardCharsets.UTF_8);
         Party called;
@@ -39,9 +41,12 @@ public class VoiceDial extends TwiMLServlet {
         if (call==null) {
             throw new NotFoundException();
         }
+        var builder = new VoiceResponse.Builder();
         if (called.isAgent()) {
             // internal call
-            return new VoiceResponse.Builder()
+            log.debug(() -> "connecting internal call  to %s->%s".formatted(call.getAgent().getFullName(),
+                    called.agent().getFullName()));
+            builder
                     .say(speak("Connecting you to " + called.agent().getFullName()))
                     .dial(new Dial.Builder()
                             .action("/twilio/voice/postDial")
@@ -49,11 +54,11 @@ public class VoiceDial extends TwiMLServlet {
                             .answerOnBridge(true)
                             .timeout(15)
                             .sip(buildSip(called))
-                            .build())
-                    .build();
+                            .build());
         } else {
             // outbound call
-            return new VoiceResponse.Builder()
+            log.debug(() -> "connecting %s to PSTN %s".formatted(call.getAgent().getFullName(), called.endpoint()));
+            builder
                     .say(speak("Dialing the number you requested"))
                     .dial(new Dial.Builder()
                             .action("/twilio/voice/postDial")
@@ -62,8 +67,8 @@ public class VoiceDial extends TwiMLServlet {
                             .timeout(60)
                             .number(buildNumber(asParty(new PhoneNumber(called.endpoint()))))
                             .callerId(call.getPhone())
-                            .build())
-                    .build();
+                            .build());
         }
+        respond(response, builder.build());
     }
 }
