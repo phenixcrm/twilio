@@ -41,8 +41,8 @@ public class Conference extends TwiMLServlet {
                                 .statusCallbackMethod(HttpMethod.GET)
                                 .statusCallbackEvents(List.of(START, END))
                                 .statusCallback(router.getAbsolutePath(
-                                        "/twilio/voice/callAgent?TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(
-                                                task, reservation, callSid), null))
+                                        "/twilio/voice/callAgent","TaskSid=%s&ReservationSid=%s&Assignment=%s".formatted(
+                                                task, reservation, callSid)))
                                 .record(RECORD_FROM_START)
                                 .recordingStatusCallbackEvents(COMPLETED)
                                 .recordingStatusCallbackMethod(POST)
