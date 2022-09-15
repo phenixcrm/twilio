@@ -34,9 +34,16 @@ public class Events extends TwiMLServlet {
                     var from = Startup.router.bySid.get(request.getParameter("WorkerPreviousActivitySid"));
                     var to = Startup.router.bySid.get(request.getParameter("WorkerActivitySid"));
                     var workerSid = request.getParameter("WorkerSid");
-                    log.debug(() -> "%s %s->%s".formatted(Locator.$1(Agent.withSid(workerSid)).getFullName(),
-                            from.getFriendlyName(), to.getFriendlyName()));
-                    Startup.router.byAgent.put(workerSid, Startup.router.available.equals(to));
+                    var agent = Locator.$1(Agent.withSid(workerSid));
+                    log.debug(() -> "%s %s->%s".formatted(agent.getFullName(), from.getFriendlyName(),
+                            to.getFriendlyName()));
+                    boolean available = Startup.router.available.equals(to);
+                    Startup.router.byAgent.put(workerSid, available);
+                    if(!available) {
+                        Startup.router
+                                .getTopic("events")
+                                .publish(new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("action", "ABSENT")));
+                    }
                 }
                 case "task.canceled" -> {
                     var task = JsonMap.parse(request.getParameter("TaskAttributes"));

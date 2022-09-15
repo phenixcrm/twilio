@@ -38,6 +38,7 @@ public class VoiceCall extends TwiMLServlet {
         var caller = asParty(request, "Caller");
         var call = new Call(callSid);
         caller.setCNAM(call);
+
         call.setResolution(Resolution.ACTIVE);
         call.setCreated(LocalDateTime.now());
         final TwiML twiml;
@@ -104,7 +105,6 @@ public class VoiceCall extends TwiMLServlet {
                                     .build())
                             .build();
                 } else {
-                    log.info(() -> "%s is being placed in queue %s".formatted(call.sid, vCid.getQueue().getName()));
                     twiml = enqueue(new VoiceResponse.Builder(), caller, call, vCid.getQueue(),
                             vCid.getSource()).build();
                 }
@@ -127,6 +127,7 @@ public class VoiceCall extends TwiMLServlet {
 
     public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call call, SkillQueue q,
                                                 Source src) {
+        log.info(() -> "%s is being placed in queue %s".formatted(call.sid, q.getName()));
         // straight to task router
         call.setDirection(CallDirection.QUEUE);
         call.setQueue(q);
