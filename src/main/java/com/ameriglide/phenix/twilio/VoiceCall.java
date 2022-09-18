@@ -109,8 +109,8 @@ public class VoiceCall extends TwiMLServlet {
                             vCid.getSource()).build();
                 }
             }
-            Locator.create("VoiceCall", call);
         }
+        Locator.create("VoiceCall", call);
         if (twiml!=null) {
             respond(response, twiml);
         } else {
