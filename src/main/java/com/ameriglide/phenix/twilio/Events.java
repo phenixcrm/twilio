@@ -39,7 +39,7 @@ public class Events extends TwiMLServlet {
                             to.getFriendlyName()));
                     boolean available = Startup.router.available.equals(to);
                     Startup.router.byAgent.put(workerSid, available);
-                    if(!available) {
+                    if(available) {
                         Startup.router
                                 .getTopic("events")
                                 .publish(new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("action", "ABSENT")));
