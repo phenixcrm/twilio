@@ -32,13 +32,16 @@ public class PostDial extends TwiMLServlet {
             .redirect(toVoicemail)
             .build());
         }
+      } else {
+        respond(response,new VoiceResponse.Builder()
+                .redirect(toVoicemail)
+                .build());
       }
+    } else {
+      respond(response,new VoiceResponse.Builder()
+              .hangup(hangup)
+              .build());
     }
-    // sometimes our side is still on the call, so we need to hang up in that case.
-    respond(response,new VoiceResponse.Builder()
-      .hangup(hangup)
-      .build());
-
   }
   private static final Log log = new Log();
 

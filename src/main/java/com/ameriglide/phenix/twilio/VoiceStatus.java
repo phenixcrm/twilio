@@ -26,7 +26,8 @@ public class VoiceStatus extends TwiMLServlet {
     @Override
     protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
         String thisSid = request.getParameter("CallSid");
-        if (isEmpty(request.getParameter("ParentCallSid"))) {
+        var parentSid = request.getParameter("ParentCallSid");
+        if (isEmpty(parentSid)) {
             // we are operating on the primary call
             var call = Locator.$(new Call(thisSid));
             if (call==null) {
@@ -42,7 +43,18 @@ public class VoiceStatus extends TwiMLServlet {
 
         } else {
             // we have an update on a leg
-            var call = Locator.$(new Call(request.getParameter("ParentCallSid")));
+           var parentCall = Locator.$(new Call(parentSid));
+           final Call call;
+           if(parentCall == null) {
+               var leg = Locator.$(new Leg(parentSid));
+               if(leg == null) {
+                   log.error(()->"Have an update on nonexistant call/leg %s".formatted(parentSid));
+                   throw new NotFoundException();
+               }
+               call = leg.call;
+           } else {
+               call = parentCall;
+           }
             var segment = Optionals.of(Locator.$(new Leg(call, thisSid))).orElseGet(() -> {
                 var leg = new Leg(call, thisSid);
                 leg.setCreated(now());
