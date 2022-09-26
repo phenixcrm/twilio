@@ -59,6 +59,9 @@ public class VoiceStatus extends TwiMLServlet {
                 var leg = new Leg(call, thisSid);
                 leg.setCreated(now());
                 switch (call.getDirection()) {
+                    case QUEUE-> {
+                        leg.setAgent(asParty(request,"To").agent());
+                    }
                     case INBOUND -> {
 
                     }
