@@ -3,6 +3,7 @@ package com.ameriglide.phenix.twilio;
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.twilio.http.HttpMethod;
@@ -26,7 +27,10 @@ public class VoiceDial extends TwiMLServlet {
     @Override
     protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
         var agent = request.getParameter("agent");
-        var number = decode(request.getParameter("number"), StandardCharsets.UTF_8);
+        var number = Optionals
+                .of(request.getParameter("number"))
+                .map(n -> decode(request.getParameter("number"), StandardCharsets.UTF_8))
+                .orElse(null);
         Party called;
         if (isEmpty(agent)) {
             if (isEmpty(number)) {
