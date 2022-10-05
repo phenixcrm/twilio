@@ -29,7 +29,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
 
         var nextRun = LocalDateTime.now().plusDays(1).toLocalDate().atStartOfDay();
         var now = LocalDateTime.now();
-        var secs = ChronoUnit.SECONDS.between(now, nextRun);
+        var secs = ChronoUnit.SECONDS.between(now, nextRun)+5;
         log.info(() -> "Scheduling next midnight logout in %d sec".formatted(secs));
         executor.schedule(() -> {
             log.info(() -> "Automatically logging out active workers");
