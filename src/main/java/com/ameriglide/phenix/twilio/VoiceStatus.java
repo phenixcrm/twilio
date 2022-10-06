@@ -76,7 +76,14 @@ public class VoiceStatus extends TwiMLServlet {
                             }
                         }
                     }
-                    case INTERNAL -> leg.setAgent(asParty(request, "To").agent());
+                    case INTERNAL -> {
+                        var to = asParty(request,"To");
+                        if(to.isAgent()) {
+                            leg.setAgent(to.agent());
+                        } else {
+                            to.setCNAM(leg);
+                        }
+                    }
 
                 }
                 Locator.create("VoiceStatus", leg);

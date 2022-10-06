@@ -48,7 +48,7 @@ public class VoiceDial extends TwiMLServlet {
         var builder = new VoiceResponse.Builder();
         if (called.isAgent()) {
             // internal call
-            log.debug(() -> "connecting internal call  to %s->%s".formatted(call.getAgent().getFullName(),
+            log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
                     called.agent().getFullName()));
             builder
                     .say(speak("Connecting you to " + called.agent().getFullName()))
