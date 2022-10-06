@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -11,6 +12,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
+import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 
@@ -43,32 +45,30 @@ public class VoiceStatus extends TwiMLServlet {
 
         } else {
             // we have an update on a leg
-           var parentCall = Locator.$(new Call(parentSid));
-           final Call call;
-           if(parentCall == null) {
-               var leg = Locator.$(new Leg(parentSid));
-               if(leg == null) {
-                   log.error(()->"Have an update on nonexistant call/leg %s".formatted(parentSid));
-                   throw new NotFoundException();
-               }
-               call = leg.call;
-           } else {
-               call = parentCall;
-           }
+            var parentCall = Locator.$(new Call(parentSid));
+            final Call call;
+            if (parentCall==null) {
+                var leg = Locator.$(new Leg(parentSid));
+                if (leg==null) {
+                    log.error(() -> "Have an update on nonexistant call/leg %s".formatted(parentSid));
+                    throw new NotFoundException();
+                }
+                call = leg.call;
+            } else {
+                call = parentCall;
+            }
             var segment = Optionals.of(Locator.$(new Leg(call, thisSid))).orElseGet(() -> {
                 var leg = new Leg(call, thisSid);
                 leg.setCreated(now());
                 switch (call.getDirection()) {
-                    case QUEUE-> {
-                        leg.setAgent(asParty(request,"To").agent());
-                    }
+                    case QUEUE -> leg.setAgent(asParty(request, "To").agent());
                     case INBOUND -> {
 
                     }
                     case OUTBOUND -> {
                         if ("outbound-dial".equals(request.getParameter("Direction"))) {
-                            var called = asParty(request,"To");
-                            if(called.isAgent()) {
+                            var called = asParty(request, "To");
+                            if (called.isAgent()) {
                                 leg.setAgent(called.agent());
                             } else {
                                 leg.setAgent(call.getAgent());
@@ -77,8 +77,8 @@ public class VoiceStatus extends TwiMLServlet {
                         }
                     }
                     case INTERNAL -> {
-                        var to = asParty(request,"To");
-                        if(to.isAgent()) {
+                        var to = asParty(request, "To");
+                        if (to.isAgent()) {
                             leg.setAgent(to.agent());
                         } else {
                             to.setCNAM(leg);
@@ -116,6 +116,7 @@ public class VoiceStatus extends TwiMLServlet {
                     });
                     callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
                 }
+                notifyComplete(call);
             }
             case "in-progress", "answered" -> Locator.update(leg, "VoiceStatus", segmentCopy -> {
                 segmentCopy.setAnswered(now());
@@ -125,12 +126,24 @@ public class VoiceStatus extends TwiMLServlet {
                 legCopy.setEnded(now());
                 callCopy.setDuration(SECONDS.between(call.getCreated(), legCopy.getEnded()));
                 callCopy.setResolution(DROPPED);
+                notifyComplete(call);
             });
             default -> {
                 log.info(() -> "%s had state %s".formatted(call.sid, request.getParameter("CallStatus")));
                 callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
                 callCopy.setResolution(DROPPED);
+                notifyComplete(call);
             }
         }
+    }
+
+    private void notifyComplete(final Call call) {
+        log.debug(()->"Sending clear call sid for %s".formatted(call.sid));
+        Startup.router.getTopic("events")
+                .publish(JsonMap.$()
+                        .$("type","status")
+                        .$("event",JsonMap.$()
+                                .$("action",Action.COMPLETE)
+                                .$("callId",call.sid)));
     }
 }

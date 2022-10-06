@@ -1,6 +1,7 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
+import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -38,13 +39,17 @@ public class VoiceCall extends TwiMLServlet {
         var caller = asParty(request, "Caller");
         var call = new Call(callSid);
         caller.setCNAM(call);
+        final boolean notify;
+        final boolean pop;
 
         call.setResolution(Resolution.ACTIVE);
         call.setCreated(LocalDateTime.now());
         final TwiML twiml;
         if (caller.isAgent()) {
+            notify = true;
             call.setAgent(caller.agent());
             if (called.isAgent()) {
+                pop = false; // no need to pop internal calls
                 log.info(() -> "%s is a new internal call %s->%s".formatted(callSid, caller, called));
                 call.setDirection(CallDirection.INTERNAL);
                 twiml = new VoiceResponse.Builder()
@@ -57,6 +62,7 @@ public class VoiceCall extends TwiMLServlet {
                                 .build())
                         .build();
             } else {
+                pop = true; // pop outbounds
                 log.info(() -> "%s is a new outbound call %s->%s".formatted(callSid, caller, called));
                 call.setDirection(CallDirection.OUTBOUND);
                 var vCid = Locator.$1(VerifiedCallerId.isDefault);
@@ -72,6 +78,8 @@ public class VoiceCall extends TwiMLServlet {
         } else {
             // INBOUND or IVR/QUEUE call
             if (called.isAgent()) {
+                pop = false; // task router assignment will handle the pops
+                notify = false;
                 // Task router assignment
                 var task = JsonMap.parse(request.getParameter("Task"));
                 var taskCall = Locator.$(new Call(task.get("VoiceCall")));
@@ -81,17 +89,21 @@ public class VoiceCall extends TwiMLServlet {
                 leg.setCreated(LocalDateTime.now());
                 Locator.create("VoiceCall", leg);
                 twiml = null;
-                log.info(()->"%s is a new call to %s in service  of task %s".formatted(callSid,
-                        called.agent().getFullName(),taskCall.sid));
+                log.info(() -> "%s is a new call to %s in service  of task %s".formatted(callSid,
+                        called.agent().getFullName(), taskCall.sid));
             } else {
                 log.info(() -> "%s is a new inbound call %s->%s".formatted(callSid, caller, called));
                 var vCid = Locator.$1(VerifiedCallerId.withPhoneNumber(called.endpoint()));
                 if (vCid==null || vCid.isIvr()) {
+                    pop = false; // nobody to pop the call to yet, in IVR
+                    notify = false;
                     call.setDirection(CallDirection.QUEUE);
                     // main IVR
                     twiml = Menu.enter("main", request, response);
                 } else if (vCid.isDirect()) {
-                    log.info(() -> "%s is a new call from %s direct to %s".formatted(call.sid, caller.endpoint() ,
+                    pop = true;
+                    notify = true;
+                    log.info(() -> "%s is a new call from %s direct to %s".formatted(call.sid, caller.endpoint(),
                             vCid.getDirect().getFullName()));
                     call.setDirection(CallDirection.INBOUND);
                     call.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
@@ -104,13 +116,37 @@ public class VoiceCall extends TwiMLServlet {
                                     .sip(TwiMLServlet.buildSip(asParty(vCid.getDirect())))
                                     .build())
                             .build();
-                } else {
+                } else { // brand new queue call
+                    log.info(() -> "%s is a new queue call %s->%s (%s)".formatted(callSid, caller, called,
+                            vCid.getQueue().getName()));
+                    pop = false; // assignment will handle
+                    notify = false;
                     twiml = enqueue(new VoiceResponse.Builder(), caller, call, vCid.getQueue(),
                             vCid.getSource()).build();
                 }
             }
         }
         Locator.create("VoiceCall", call);
+        if (pop) {
+            log.debug(()->"Requesting call pop on %s for %s".formatted( callSid,call.getAgent().getFullName()));
+            Startup.router
+                    .getTopic("events")
+                    .publish(new JsonMap()
+                            .$("agent", call.getAgent().id)
+                            .$("type", "pop")
+                            .$("event", new JsonMap().$("callId", callSid)));
+        }
+        if (notify) {
+            log.debug(()->"Requesting status refresh due to %s for %s"
+                    .formatted( callSid, call.getAgent().getFullName()));
+            Startup.router
+                    .getTopic("events")
+                    .publish(new JsonMap()
+                            .$("agent", call.getAgent().id)
+                            .$("type", "status")
+                            .$("event", new JsonMap().$("action", Action.UPDATE)));
+
+        }
         if (twiml!=null) {
             respond(response, twiml);
         } else {

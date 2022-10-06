@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -14,6 +15,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
+import net.inetalliance.types.json.JsonMap;
 
 import java.nio.charset.StandardCharsets;
 
@@ -45,8 +47,13 @@ public class VoiceDial extends TwiMLServlet {
         if (call==null) {
             throw new NotFoundException();
         }
+
         var builder = new VoiceResponse.Builder();
+        final boolean pop;
+        final boolean notify;
         if (called.isAgent()) {
+            pop = false;
+            notify = true;
             // internal call
             log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
                     called.agent().getFullName()));
@@ -60,6 +67,7 @@ public class VoiceDial extends TwiMLServlet {
                             .sip(buildSip(called))
                             .build());
         } else {
+            pop = true;
             // outbound call
             log.debug(() -> "connecting %s to PSTN %s".formatted(call.getAgent().getFullName(), called.endpoint()));
             builder
@@ -73,6 +81,33 @@ public class VoiceDial extends TwiMLServlet {
                             .callerId(call.getPhone())
                             .build());
         }
+        if (pop) {
+            log.debug(()->"Requesting call pop on %s for %s".formatted( call.sid,call.getAgent().getFullName()));
+            Startup.router
+                    .getTopic("events")
+                    .publish(new JsonMap()
+                            .$("agent", call.getAgent().id)
+                            .$("type", "pop")
+                            .$("event", new JsonMap().$("callId", call.sid)));
+        }
+            log.debug(()->"Requesting status refresh due to %s for %s"
+                    .formatted( call.sid, call.getAgent().getFullName()));
+            Startup.router
+                    .getTopic("events")
+                    .publish(new JsonMap()
+                            .$("agent", call.getAgent().id)
+                            .$("type", "status")
+                            .$("event", new JsonMap().$("action", Action.UPDATE)
+                                    .$("callId",call.sid)));
+            /*
+            {
+                agent: 4,
+                type: status,
+                event: {
+                    action: "UPDATE"
+                }
+             */
+
         respond(response, builder.build());
     }
 }
