@@ -14,33 +14,31 @@ public class PostDial extends TwiMLServlet {
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
     var called = asParty(request, "To");
-    if ("no-answer".equals(request.getParameter("DialCallStatus"))) {
-      if (called.isAgent()) {
-        var agent = called.agent();
-        if (agent == null) {
-          log.error(()->"somebody tried to dial %s".formatted(called));
-          respond(response,new VoiceResponse.Builder()
-            .say(speak("The party you have dialed, " + called.spoken() + ", does not exist"))
-            .pause(pause(2))
-            .hangup(hangup)
-            .build());
-
-        } else {
-          log.debug(()->"Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
-                  agent.getFullName()));
-          respond(response,new VoiceResponse.Builder()
-            .redirect(toVoicemail)
-            .build());
-        }
-      } else {
-        respond(response,new VoiceResponse.Builder()
-                .redirect(toVoicemail)
-                .build());
-      }
-    } else {
-      respond(response,new VoiceResponse.Builder()
+    switch (request.getParameter("DialCallStatus")) {
+      case "failed":
+      case "no-answer":
+        if (called.isAgent()) {
+          var agent = called.agent();
+          if (agent==null) {
+            log.error(() -> "somebody tried to dial %s".formatted(called));
+            respond(response, new VoiceResponse.Builder()
+              .say(speak("The party you have dialed, " + called.spoken() + ", does not exist"))
+              .pause(pause(2))
               .hangup(hangup)
               .build());
+
+          } else {
+            log.debug(() -> "Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
+              agent.getFullName()));
+            respond(response, new VoiceResponse.Builder().redirect(toVoicemail).build());
+          }
+        } else {
+          respond(response, new VoiceResponse.Builder().redirect(toVoicemail).build());
+        }
+        break;
+      default:
+        respond(response, new VoiceResponse.Builder().hangup(hangup).build());
+        break;
     }
   }
   private static final Log log = new Log();
