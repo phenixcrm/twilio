@@ -96,6 +96,9 @@ public class VoiceCall extends TwiMLServlet {
           pop = false; // nobody to pop the call to yet, in IVR
           notify = false;
           call.setDirection(CallDirection.QUEUE);
+          if(vCid != null){
+            call.setSource(vCid.getSource());
+          }
           // main IVR
           twiml = Menu.enter("main", request, response);
         } else if (vCid.isDirect()) {
@@ -103,6 +106,7 @@ public class VoiceCall extends TwiMLServlet {
           notify = true;
           log.info(() -> "%s is a new call from %s direct to %s".formatted(call.sid, caller.endpoint(),
             vCid.getDirect().getFullName()));
+          call.setSource(vCid.getSource());
           call.setDirection(CallDirection.INBOUND);
           call.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
           twiml = new VoiceResponse.Builder()
@@ -168,7 +172,9 @@ public class VoiceCall extends TwiMLServlet {
     // straight to task router
     call.setDirection(CallDirection.QUEUE);
     call.setQueue(q);
-    call.setSource(src);
+    if(call.getSource() == null) { // don't overwrite an upstream source, just fall back to the enqueued source
+      call.setSource(src);
+    }
     call.setBusiness(q.getBusiness());
     var task = new JsonMap().$("VoiceCall", call.sid);
     var p = q.getProduct();
