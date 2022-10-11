@@ -161,7 +161,7 @@ public class VoiceCall extends TwiMLServlet {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(call.sid, q.getName()));
       return builder
         .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
-          + "M, Monday through Saturday."))
+          + "M Eastern Standard Time, Monday through Saturday."))
         .redirect(toVoicemail);
     }
     log.info(() -> "%s is being placed in queue %s".formatted(call.sid, q.getName()));
