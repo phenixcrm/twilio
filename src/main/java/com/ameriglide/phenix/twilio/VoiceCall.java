@@ -108,6 +108,7 @@ public class VoiceCall extends TwiMLServlet {
             vCid.getDirect().getFullName()));
           call.setSource(vCid.getSource());
           call.setDirection(CallDirection.INBOUND);
+          call.setAgent(vCid.getDirect());
           call.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
           twiml = new VoiceResponse.Builder()
             .dial(new Dial.Builder()
