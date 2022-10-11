@@ -194,7 +194,6 @@ public class VoiceCall extends TwiMLServlet {
                     .orElse(JsonString.NULL));
         }
         builder
-                .pause(pause(2))
                 .say(speak(q.getWelcomeMessage()))
                 .enqueue(new Enqueue.Builder()
                         .workflowSid(Startup.router.workflow.getSid())
