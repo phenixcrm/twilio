@@ -22,6 +22,7 @@ import net.inetalliance.types.json.Json;
 import net.inetalliance.types.json.JsonMap;
 import net.inetalliance.types.json.JsonString;
 
+import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
@@ -121,8 +122,12 @@ public class VoiceCall extends TwiMLServlet {
                             vCid.getQueue().getName()));
                     pop = false; // assignment will handle
                     notify = false;
-                    twiml = enqueue(new VoiceResponse.Builder(), caller, call, vCid.getQueue(),
-                            vCid.getSource()).build();
+                    var now = LocalDateTime.now();
+                    if(now.getDayOfWeek() == DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour()>20) {
+                      twiml = new VoiceResponse.Builder().redirect(toVoicemail).build();
+                    } else {
+                      twiml = enqueue(new VoiceResponse.Builder(), caller, call, vCid.getQueue(), vCid.getSource()).build();
+                    }
                 }
             }
         }
