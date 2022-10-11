@@ -159,7 +159,10 @@ public class VoiceCall extends TwiMLServlet {
     var now = LocalDateTime.now();
     if(now.getDayOfWeek() == DayOfWeek.SUNDAY || now.getHour()<8 || now.getHour()>20) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(call.sid, q.getName()));
-      return builder.redirect(toVoicemail);
+      return builder
+        .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
+          + "M, Monday through Saturday."))
+        .redirect(toVoicemail);
     }
     log.info(() -> "%s is being placed in queue %s".formatted(call.sid, q.getName()));
     // straight to task router
