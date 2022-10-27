@@ -1,6 +1,7 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
+import com.ameriglide.phenix.common.AgentStatus;
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -14,6 +15,8 @@ import net.inetalliance.types.json.JsonMap;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+import static com.ameriglide.phenix.servlet.Startup.shared;
+import static com.ameriglide.phenix.servlet.Startup.topics;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/events")
@@ -31,19 +34,22 @@ public class Events extends TwiMLServlet {
         try {
             switch (request.getParameter("EventType")) {
                 case "worker.activity.update" -> {
-                    var from = Startup.router.bySid.get(request.getParameter("WorkerPreviousActivitySid"));
-                    var to = Startup.router.bySid.get(request.getParameter("WorkerActivitySid"));
+                    var from = Startup.router.byActivitySid.get(request.getParameter("WorkerPreviousActivitySid"));
+                    var to = Startup.router.byActivitySid.get(request.getParameter("WorkerActivitySid"));
                     var workerSid = request.getParameter("WorkerSid");
                     var agent = Locator.$1(Agent.withSid(workerSid));
                     log.debug(() -> "%s %s->%s".formatted(agent.getFullName(), from.getFriendlyName(),
                             to.getFriendlyName()));
-                    boolean available = Startup.router.available.equals(to);
-                    Startup.router.byAgent.put(workerSid, available);
-                    if(available) {
-                        Startup.router
-                                .getTopic("events")
-                                .publish(new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("action", "ABSENT")));
+
+                    var availableNow = Startup.router.available.equals(to);
+                    var status = shared.availability().get(agent.id);
+                    if(status == null) {
+                      shared.availability().put(agent.id,new AgentStatus(agent,availableNow));
                     }
+                      if(status != null && status.available() != availableNow) {
+                        shared.availability().put(agent.id, status.toggleAvailability());
+                        topics.hud().publishAsync("PRODUCE");
+                      }
                 }
                 case "task.canceled" -> {
                     var task = JsonMap.parse(request.getParameter("TaskAttributes"));

@@ -1,7 +1,6 @@
 package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
-import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -96,7 +95,7 @@ public class VoiceCall extends TwiMLServlet {
           pop = false; // nobody to pop the call to yet, in IVR
           notify = false;
           call.setDirection(CallDirection.QUEUE);
-          if(vCid != null){
+          if (vCid!=null) {
             call.setSource(vCid.getSource());
           }
           // main IVR
@@ -131,20 +130,12 @@ public class VoiceCall extends TwiMLServlet {
     Locator.create("VoiceCall", call);
     if (pop) {
       log.debug(() -> "Requesting call pop on %s for %s".formatted(callSid, call.getAgent().getFullName()));
-      Startup.router
-        .getTopic("events")
-        .publish(
-          new JsonMap().$("agent", call.getAgent().id).$("type", "pop").$("event", new JsonMap().$("callId", callSid)));
+      Assignment.pop(call.getAgent(), call.sid);
     }
     if (notify) {
       log.debug(() -> "Requesting status refresh due to %s for %s".formatted(callSid, call.getAgent().getFullName()));
-      Startup.router
-        .getTopic("events")
-        .publish(new JsonMap()
-          .$("agent", call.getAgent().id)
-          .$("type", "status")
-          .$("event", new JsonMap().$("action", Action.UPDATE)));
-
+      Assignment.notify(call);
+      Startup.topics.hud().publish("PRODUCE");
     }
     if (twiml!=null) {
       respond(response, twiml);
@@ -162,7 +153,7 @@ public class VoiceCall extends TwiMLServlet {
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call call, SkillQueue q,
                                               Source src) {
     var now = LocalDateTime.now();
-    if(now.getDayOfWeek() == DayOfWeek.SUNDAY || now.getHour()<8 || now.getHour()>20) {
+    if (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(call.sid, q.getName()));
       return builder
         .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
@@ -173,7 +164,7 @@ public class VoiceCall extends TwiMLServlet {
     // straight to task router
     call.setDirection(CallDirection.QUEUE);
     call.setQueue(q);
-    if(call.getSource() == null) { // don't overwrite an upstream source, just fall back to the enqueued source
+    if (call.getSource()==null) { // don't overwrite an upstream source, just fall back to the enqueued source
       call.setSource(src);
     }
     call.setBusiness(q.getBusiness());

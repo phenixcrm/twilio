@@ -2,7 +2,6 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
-import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -12,7 +11,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
-import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 
@@ -116,7 +114,7 @@ public class VoiceStatus extends TwiMLServlet {
                     });
                     callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
                 }
-                notifyComplete(call);
+                Assignment.clear(call);
             }
             case "in-progress", "answered" -> Locator.update(leg, "VoiceStatus", segmentCopy -> {
                 segmentCopy.setAnswered(now());
@@ -126,24 +124,16 @@ public class VoiceStatus extends TwiMLServlet {
                 legCopy.setEnded(now());
                 callCopy.setDuration(SECONDS.between(call.getCreated(), legCopy.getEnded()));
                 callCopy.setResolution(DROPPED);
-                notifyComplete(call);
+                Assignment.clear(call);
             });
             default -> {
                 log.info(() -> "%s had state %s".formatted(call.sid, request.getParameter("CallStatus")));
                 callCopy.setDuration(SECONDS.between(call.getCreated(), leg.getEnded()));
                 callCopy.setResolution(DROPPED);
-                notifyComplete(call);
+                Assignment.clear(call);
             }
         }
     }
 
-    private void notifyComplete(final Call call) {
-        log.debug(()->"Sending clear call sid for %s".formatted(call.sid));
-        Startup.router.getTopic("events")
-                .publish(JsonMap.$()
-                        .$("type","status")
-                        .$("event",JsonMap.$()
-                                .$("action",Action.COMPLETE)
-                                .$("callId",call.sid)));
-    }
+
 }

@@ -2,7 +2,6 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
-import com.ameriglide.phenix.common.ws.Action;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -15,7 +14,6 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
-import net.inetalliance.types.json.JsonMap;
 
 import java.nio.charset.StandardCharsets;
 
@@ -24,90 +22,71 @@ import static java.net.URLDecoder.decode;
 
 @WebServlet("/twilio/voice/dial")
 public class VoiceDial extends TwiMLServlet {
-    private static final Log log = new Log();
+  private static final Log log = new Log();
 
-    @Override
-    protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
-        var agent = request.getParameter("agent");
-        var number = Optionals
-                .of(request.getParameter("number"))
-                .map(n -> decode(request.getParameter("number"), StandardCharsets.UTF_8))
-                .orElse(null);
-        Party called;
-        if (isEmpty(agent)) {
-            if (isEmpty(number)) {
-                throw new IllegalArgumentException();
-            }
-            called = asParty(new PhoneNumber(number));
-        } else {
-            called = asParty(Locator.$(new Agent(Integer.parseInt(agent))));
-        }
-        // call the caller and then connect to the called party
-        var call = Locator.$(new Call(request.getParameter("CallSid")));
-        if (call==null) {
-            throw new NotFoundException();
-        }
-
-        var builder = new VoiceResponse.Builder();
-        final boolean pop;
-        final boolean notify;
-        if (called.isAgent()) {
-            pop = false;
-            notify = true;
-            // internal call
-            log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
-                    called.agent().getFullName()));
-            builder
-                    .say(speak("Connecting you to " + called.agent().getFullName()))
-                    .dial(new Dial.Builder()
-                            .action("/twilio/voice/postDial")
-                            .method(HttpMethod.GET)
-                            .answerOnBridge(true)
-                            .timeout(15)
-                            .sip(buildSip(called))
-                            .build());
-        } else {
-            pop = true;
-            // outbound call
-            log.debug(() -> "connecting %s to PSTN %s".formatted(call.getAgent().getFullName(), called.endpoint()));
-            builder
-                    .say(speak("Dialing the number you requested"))
-                    .dial(new Dial.Builder()
-                            .action("/twilio/voice/postDial")
-                            .method(HttpMethod.GET)
-                            .answerOnBridge(true)
-                            .timeout(60)
-                            .number(buildNumber(asParty(new PhoneNumber(called.endpoint()))))
-                            .callerId(call.getPhone())
-                            .build());
-        }
-        if (pop) {
-            log.debug(()->"Requesting call pop on %s for %s".formatted( call.sid,call.getAgent().getFullName()));
-            Startup.router
-                    .getTopic("events")
-                    .publish(new JsonMap()
-                            .$("agent", call.getAgent().id)
-                            .$("type", "pop")
-                            .$("event", new JsonMap().$("callId", call.sid)));
-        }
-            log.debug(()->"Requesting status refresh due to %s for %s"
-                    .formatted( call.sid, call.getAgent().getFullName()));
-            Startup.router
-                    .getTopic("events")
-                    .publish(new JsonMap()
-                            .$("agent", call.getAgent().id)
-                            .$("type", "status")
-                            .$("event", new JsonMap().$("action", Action.UPDATE)
-                                    .$("callId",call.sid)));
-            /*
-            {
-                agent: 4,
-                type: status,
-                event: {
-                    action: "UPDATE"
-                }
-             */
-
-        respond(response, builder.build());
+  @Override
+  protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+    var agent = request.getParameter("agent");
+    var number = Optionals
+      .of(request.getParameter("number"))
+      .map(n -> decode(request.getParameter("number"), StandardCharsets.UTF_8))
+      .orElse(null);
+    Party called;
+    if (isEmpty(agent)) {
+      if (isEmpty(number)) {
+        throw new IllegalArgumentException();
+      }
+      called = asParty(new PhoneNumber(number));
+    } else {
+      called = asParty(Locator.$(new Agent(Integer.parseInt(agent))));
     }
+    // call the caller and then connect to the called party
+    var call = Locator.$(new Call(request.getParameter("CallSid")));
+    if (call==null) {
+      throw new NotFoundException();
+    }
+
+    var builder = new VoiceResponse.Builder();
+    final boolean pop;
+    final boolean notify;
+    if (called.isAgent()) {
+      pop = false;
+      notify = true;
+      // internal call
+      log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
+        called.agent().getFullName()));
+      builder
+        .say(speak("Connecting you to " + called.agent().getFullName()))
+        .dial(new Dial.Builder()
+          .action("/twilio/voice/postDial")
+          .method(HttpMethod.GET)
+          .answerOnBridge(true)
+          .timeout(15)
+          .sip(buildSip(called))
+          .build());
+    } else {
+      pop = true;
+      // outbound call
+      log.debug(() -> "connecting %s to PSTN %s".formatted(call.getAgent().getFullName(), called.endpoint()));
+      builder
+        .say(speak("Dialing the number you requested"))
+        .dial(new Dial.Builder()
+          .action("/twilio/voice/postDial")
+          .method(HttpMethod.GET)
+          .answerOnBridge(true)
+          .timeout(60)
+          .number(buildNumber(asParty(new PhoneNumber(called.endpoint()))))
+          .callerId(call.getPhone())
+          .build());
+    }
+    if (pop) {
+      log.debug(() -> "Requesting call pop on %s for %s".formatted(call.sid, call.getAgent().getFullName()));
+      Assignment.pop(call.getAgent(), call.sid);
+    }
+    log.debug(() -> "Requesting status refresh due to %s for %s".formatted(call.sid, call.getAgent().getFullName()));
+    Assignment.notify(call);
+    Startup.topics.hud().publish("PRODUCE");
+
+    respond(response, builder.build());
+  }
 }
