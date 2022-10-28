@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import static com.ameriglide.phenix.servlet.Startup.shared;
 import static net.inetalliance.potion.Locator.update;
 
-@WebServlet("/api/assignment")
+@WebServlet("/twilio/assignment")
 public class Assignment extends PhenixServlet {
   private static final Log log = new Log();
   public Assignment() {
