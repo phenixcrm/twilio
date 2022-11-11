@@ -47,7 +47,6 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
 
     }, secs, TimeUnit.SECONDS);
     executor.scheduleWithFixedDelay(()-> {
-      log.info(()->"Closing inactive calls");
       var activeSids = Startup.router.getCalls().map(Call::getSid).collect(Collectors.toSet());
       Locator.forEach(isActiveVoiceCall, call-> {
         if(!activeSids.contains(call.sid)) {

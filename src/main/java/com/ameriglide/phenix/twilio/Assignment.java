@@ -19,20 +19,15 @@ import static net.inetalliance.potion.Locator.update;
 @WebServlet("/twilio/assignment")
 public class Assignment extends PhenixServlet {
   private static final Log log = new Log();
-  public Assignment() {
-  }
 
-  public static void notify(final Call call) {
-    var agent = call.getAgent();
-    var status = shared.availability().get(agent.id);
-    shared.availability().put(agent.id, status == null ? new AgentStatus(agent,call) : status.withCall(call));
+  public Assignment() {
   }
 
   public static void clear(final Call call) {
     var agent = call.getAgent();
-    if(agent != null) {
+    if (agent!=null) {
       var status = shared.availability().get(agent.id);
-      shared.availability().put(agent.id,status == null ? new AgentStatus(agent) : status.withCall(null));
+      shared.availability().put(agent.id, status==null ? new AgentStatus(agent):status.withCall(null));
     }
   }
 
@@ -41,10 +36,9 @@ public class Assignment extends PhenixServlet {
     var reservation = request.getParameter("ReservationSid");
     var task = request.getParameter("TaskSid");
     var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
-    if( Locator.find(Call.isActiveVoiceCall,c-> agent.equals(c.getActiveAgent())) != null) {
-      log.info(()->"ASSIGN skipping %s because the agent is on a call".formatted(agent.getFullName()));
-      PhenixServlet.respond(response, new JsonMap()
-        .$("instruction", "reject"));
+    if (Locator.find(Call.isActiveVoiceCall, c -> agent.equals(c.getActiveAgent()))!=null) {
+      log.info(() -> "ASSIGN skipping %s because the agent is on a call".formatted(agent.getFullName()));
+      PhenixServlet.respond(response, new JsonMap().$("instruction", "reject"));
       return;
 
     }
@@ -88,10 +82,22 @@ public class Assignment extends PhenixServlet {
       Startup.router.completeTask(task);
     }
     pop(agent, callSid);
+    notify(call);
   }
 
   public static void pop(Agent agent, String callSid) {
-    Startup.topics.events().publishAsync(
-      new JsonMap().$("agent", agent.id).$("type", "pop").$("event", new JsonMap().$("callId", callSid)));
+    Startup.topics
+      .events()
+      .publishAsync(new JsonMap().$("agent", agent.id).$("type", "pop").$("event", new JsonMap().$("callId", callSid)));
+  }
+
+  public static void notify(final Call call) {
+    var agent = call.getAgent();
+    var status = shared.availability().get(agent.id);
+    shared.availability().put(agent.id, status==null ? new AgentStatus(agent, call):status.withCall(call));
+    Startup.topics
+      .events()
+      .publishAsync(
+        new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("call", call.sid)));
   }
 }
