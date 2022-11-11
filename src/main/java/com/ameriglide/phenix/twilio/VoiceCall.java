@@ -24,6 +24,7 @@ import net.inetalliance.types.json.JsonString;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 
+import static com.ameriglide.phenix.servlet.Startup.router;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/voice/call")
@@ -153,7 +154,7 @@ public class VoiceCall extends TwiMLServlet {
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call call, SkillQueue q,
                                               Source src) {
     var now = LocalDateTime.now();
-    if (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20) {
+    if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(call.sid, q.getName()));
       return builder
         .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
@@ -191,7 +192,7 @@ public class VoiceCall extends TwiMLServlet {
     builder
       .say(speak(q.getWelcomeMessage()))
       .enqueue(new Enqueue.Builder()
-        .workflowSid(Startup.router.workflow.getSid())
+        .workflowSid(router.workflow.getSid())
         .task(new Task.Builder(Json.ugly(task)).timeout(120).build())
         .build());
     return builder;
