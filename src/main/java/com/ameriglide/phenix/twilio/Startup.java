@@ -1,17 +1,25 @@
 package com.ameriglide.phenix.twilio;
 
+import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.core.ExecutorServices;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.twilio.tasks.SyncWorkerSkills;
+import com.ameriglide.phenix.types.Resolution;
+import com.twilio.rest.api.v2010.account.Call;
 import com.twilio.rest.taskrouter.v1.workspace.Worker;
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.annotation.WebListener;
+import net.inetalliance.potion.Locator;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import static com.ameriglide.phenix.common.Call.isActiveVoiceCall;
 
 @WebListener
 public class Startup extends com.ameriglide.phenix.servlet.Startup {
@@ -38,6 +46,19 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
       schedule();
 
     }, secs, TimeUnit.SECONDS);
+    executor.scheduleWithFixedDelay(()-> {
+      log.info(()->"Closing inactive calls");
+      var activeSids = Startup.router.getCalls().map(Call::getSid).collect(Collectors.toSet());
+      Locator.forEach(isActiveVoiceCall, call-> {
+        if(!activeSids.contains(call.sid)) {
+          Locator.update(call,"Closer",copy->{
+            log.info(()->"Closed stuck call %s for %s".formatted(call.sid,
+              Optionals.of(call.getActiveAgent()).map(Agent::getFullName).orElse("nobody")));
+            copy.setResolution(Resolution.DROPPED);
+          });
+        }
+      });
+    }, 0, 15, TimeUnit.SECONDS);
 
   }
 
