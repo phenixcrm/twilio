@@ -1,10 +1,9 @@
 package com.ameriglide.phenix.twilio.menu;
 
-import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
-import com.ameriglide.phenix.twilio.VoiceCall;
+import com.ameriglide.phenix.twilio.voice.Inbound;
 import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
@@ -54,14 +53,14 @@ public class Customer extends Menu.Step {
         var builder = new VoiceResponse.Builder();
         var callSid = request.getParameter("CallSid");
         var caller = asParty(request, "Caller");
-        var call = Locator.$(new Call(callSid));
+        var call = Locator.$(new com.ameriglide.phenix.common.Call(callSid));
         if (call==null) {
             throw new NotFoundException("No call found for " + callSid);
         }
         switch (request.getParameter("Digits")) {
-            case "1", "3" -> VoiceCall.enqueue(builder, caller, call,
+            case "1", "3" -> Inbound.enqueue(builder, caller, call,
                     Locator.$(new WorkflowAssignment(CallType.SERVICE)).getQueue(), Source.PHONE);
-            case "2" -> VoiceCall.enqueue(builder, caller, call,
+            case "2" -> Inbound.enqueue(builder, caller, call,
                     Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(), Source.PHONE);
             default -> {
                 return new VoiceResponse.Builder().redirect(toVoicemail).build();

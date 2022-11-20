@@ -1,13 +1,12 @@
 package com.ameriglide.phenix.twilio.menu;
 
-import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
-import com.ameriglide.phenix.twilio.VoiceCall;
+import com.ameriglide.phenix.twilio.voice.Inbound;
 import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
@@ -44,7 +43,7 @@ public class Main extends Menu.Step {
     log.debug(()->"%s Processing main menu input (%s)".formatted(request.getParameter("CallSid"),digits));
     var callSid = request.getParameter("CallSid");
     var caller = TwiMLServlet.asParty(request, "Caller");
-    var call = Locator.$(new Call(callSid));
+    var call = Locator.$(new com.ameriglide.phenix.common.Call(callSid));
     if (call == null) {
       throw new NotFoundException("No call found for " + callSid);
     }
@@ -61,7 +60,7 @@ public class Main extends Menu.Step {
               + " and accessibility industry. We have the largest selection of products to ensure our customers get the best"
               + " solution, at the lowest possible price. We guarantee it! Ask your mobility specialist about our 110% "
               + "guarantee!"));
-          VoiceCall.enqueue(builder, caller, copy,
+          Inbound.enqueue(builder, caller, copy,
             Locator.$(new WorkflowAssignment(CallType.ANY)).getQueue(),
             Source.PHONE);
         });

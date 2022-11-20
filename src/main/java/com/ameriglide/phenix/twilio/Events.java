@@ -3,6 +3,7 @@ package com.ameriglide.phenix.twilio;
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.AgentStatus;
 import com.ameriglide.phenix.common.Call;
+import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.Resolution;
@@ -14,24 +15,25 @@ import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Objects;
+import java.util.stream.Stream;
 
 import static com.ameriglide.phenix.servlet.Startup.shared;
 import static com.ameriglide.phenix.servlet.Startup.topics;
+import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/events")
 public class Events extends TwiMLServlet {
-
   private static final Log log = new Log();
 
-  @Override
-  protected void get(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
-    response.sendError(SC_NO_CONTENT);
+  public Events() {
+    super(Mode.OPTIONAL, Mode.IGNORE);
   }
 
-
   @Override
-  protected void post(final HttpServletRequest request, final HttpServletResponse response) throws Exception {
+  protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
+    Exception {
     try {
       switch (request.getParameter("EventType")) {
         case "worker.activity.update" -> {
@@ -40,7 +42,6 @@ public class Events extends TwiMLServlet {
           var workerSid = request.getParameter("WorkerSid");
           var agent = Locator.$1(Agent.withSid(workerSid));
           log.debug(() -> "%s %s->%s".formatted(agent.getFullName(), from.getFriendlyName(), to.getFriendlyName()));
-
           var availableNow = Startup.router.available.equals(to);
           var status = shared.availability().get(agent.id);
           if (status==null) {
@@ -54,20 +55,17 @@ public class Events extends TwiMLServlet {
                 .$("type", "status")
                 .$("agent", agent.id)
                 .$("event", new JsonMap().$("available", availableNow)));
-            topics.hud().publishAsync("PRODUCE");
+            topics.hud().publishAsync(PRODUCE);
           }
         }
         case "task.canceled" -> {
           var task = JsonMap.parse(request.getParameter("TaskAttributes"));
           if (task.containsKey("VoiceCall")) {
-            var call = Locator.$(new Call(task.get("VoiceCall")));
-            log.debug(() -> "%s cancelled (%s)".formatted(call.sid, request.getParameter("Reason")));
-            Startup.router.sendToVoicemail(call.sid);
+            log.debug(() -> "%s cancelled (%s)".formatted(task.get("VoiceCall"), request.getParameter("Reason")));
             Locator.update(call, "Events", copy -> {
-              copy.setResolution(Resolution.VOICEMAIL);
+              copy.setResolution(Resolution.DROPPED);
             });
           } else if (task.containsKey("Lead")) {
-            var call = Locator.$(new Call(request.getParameter("TaskSid")));
             Locator.update(call, "Events", copy -> {
               copy.setResolution(Resolution.DROPPED);
               copy.setBlame(Agent.system());
@@ -83,5 +81,29 @@ public class Events extends TwiMLServlet {
       throw t;
     }
 
+  }
+
+  @Override
+  protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
+    Exception {
+    response.sendError(SC_NO_CONTENT);
+  }
+
+  @Override
+  protected String getCallSid(HttpServletRequest request) {
+    switch (request.getParameter("EventType")) {
+      case "task.cancelled" -> {
+        var task = JsonMap.parse(request.getParameter("TaskAttributes"));
+        return Stream
+          .of("VoiceCall", "Lead")
+          .map(task::get)
+          .filter(Objects::nonNull)
+          .findFirst()
+          .orElse(null);
+      }
+      default -> {
+        return null;
+      }
+    }
   }
 }
