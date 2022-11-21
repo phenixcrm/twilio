@@ -14,6 +14,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.THROW;
+
 @WebServlet("/twilio/voice/complete")
 public class Complete extends TwiMLServlet {
 
@@ -21,7 +24,7 @@ public class Complete extends TwiMLServlet {
   private static final Log log = new Log();
 
   public Complete() {
-    super(Mode.THROW, Mode.IGNORE);
+    super(method -> new Config(THROW, IGNORE));
   }
 
   public static void finish(HttpServletRequest request, Call call) {

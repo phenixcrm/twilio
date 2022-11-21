@@ -18,18 +18,18 @@ import net.inetalliance.potion.Locator;
 import java.nio.charset.StandardCharsets;
 
 import static com.ameriglide.phenix.core.Strings.isEmpty;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.CREATE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static java.net.URLDecoder.decode;
 
 @WebServlet("/twilio/voice/dial")
 public class OutboundDial extends TwiMLServlet {
-  public OutboundDial() {
-    super(CREATE, IGNORE);
-  }
-
   private static final Log log = new Log();
+
+  public OutboundDial() {
+    super(method -> new Config(CREATE, IGNORE));
+  }
 
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws

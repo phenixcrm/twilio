@@ -24,8 +24,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 
 import static com.ameriglide.phenix.servlet.Startup.router;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.CREATE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static com.ameriglide.phenix.types.CallDirection.*;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
@@ -36,7 +36,7 @@ public class Inbound extends TwiMLServlet {
   private static final Log log = new Log();
 
   public Inbound() {
-    super(CREATE, IGNORE);
+    super(method -> new Config(CREATE, IGNORE));
   }
 
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws

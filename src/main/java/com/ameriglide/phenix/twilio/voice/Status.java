@@ -18,6 +18,7 @@ import net.inetalliance.potion.Locator;
 import java.util.List;
 
 import static com.ameriglide.phenix.servlet.Startup.router;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
 import static com.ameriglide.phenix.twilio.TaskRouter.toDial;
 import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static com.twilio.http.HttpMethod.GET;
@@ -29,7 +30,7 @@ public class Status extends TwiMLServlet {
   private static final Log log = new Log();
 
   public Status() {
-    super(Mode.CREATE, Mode.CREATE);
+    super(method -> new Config(CREATE, CREATE));
   }
 
   protected static Dial.Builder watch(Party party) {

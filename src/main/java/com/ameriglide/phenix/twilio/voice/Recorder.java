@@ -3,8 +3,9 @@ package com.ameriglide.phenix.twilio.voice;
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Strings;
+import com.ameriglide.phenix.servlet.Startup;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
-import com.ameriglide.phenix.twilio.Startup;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.twiml.voice.Record.Builder;
 import jakarta.servlet.ServletException;
@@ -13,12 +14,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
-import java.net.URI;
 import java.util.List;
 
 import static com.ameriglide.phenix.core.Strings.isNotEmpty;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.CREATE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.types.Resolution.VOICEMAIL;
 import static com.twilio.http.HttpMethod.GET;
 import static com.twilio.twiml.voice.Record.RecordingEvent.ABSENT;
@@ -29,13 +29,15 @@ import static com.twilio.twiml.voice.Record.Trim.TRIM_SILENCE;
 public class Recorder extends TwiMLServlet {
   private static final Log log = new Log();
   public static Builder watcher;
-  private static URI callback;
-
   public Recorder() {
-    super(CREATE, IGNORE);
+    super(method -> new Config(CREATE, IGNORE));
   }
 
   public static Dial.Builder watch() {
+    return watch(null);
+  }
+  public static Dial.Builder watch(final Call update) {
+    var callback = Startup.router.getAbsolutePath("/twilio/voice/record", update == null ? null : "update="+update.sid);
     return new Dial.Builder()
       .record(Dial.Record.RECORD_FROM_ANSWER_DUAL)
       .trim(Dial.Trim.TRIM_SILENCE)
@@ -43,6 +45,7 @@ public class Recorder extends TwiMLServlet {
       .recordingStatusCallback(callback)
       .recordingStatusCallbackEvents(List.of(Dial.RecordingEvent.COMPLETED, Dial.RecordingEvent.ABSENT));
   }
+
 
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, final Call call,
@@ -66,6 +69,12 @@ public class Recorder extends TwiMLServlet {
   }
 
   @Override
+  protected String getCallSid(final HttpServletRequest request) {
+    var update = request.getParameter("update");
+    return Strings.isEmpty(update) ? super.getCallSid(request) : update;
+  }
+
+  @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, final Call call,
                      final Leg leg) throws Exception {
     // audio recordfing
@@ -76,7 +85,6 @@ public class Recorder extends TwiMLServlet {
           log.debug(
             () -> "added recording for %s (%s sec)".formatted(call.sid, request.getParameter("RecordingDuration")));
           Locator.update(call, "Record", copy -> {
-            copy.setResolution(VOICEMAIL);
             copy.setRecordingSid(recording);
           });
         }
@@ -88,13 +96,12 @@ public class Recorder extends TwiMLServlet {
   @Override
   public void destroy() {
     watcher = null;
-    callback = null;
   }
 
   @Override
   public void init() throws ServletException {
     super.init();
-    callback = Startup.router.getAbsolutePath("/twilio/voice/record", null);
+    var callback = Startup.router.getAbsolutePath("/twilio/voice/record", null);
     watcher = new Builder()
       .recordingStatusCallbackMethod(GET)
       .recordingStatusCallback(callback)

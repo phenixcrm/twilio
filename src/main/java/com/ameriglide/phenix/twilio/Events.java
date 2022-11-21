@@ -6,7 +6,6 @@ import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
-import com.ameriglide.phenix.types.Resolution;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +19,10 @@ import java.util.stream.Stream;
 
 import static com.ameriglide.phenix.servlet.Startup.shared;
 import static com.ameriglide.phenix.servlet.Startup.topics;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.OPTIONAL;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
+import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/events")
@@ -28,7 +30,7 @@ public class Events extends TwiMLServlet {
   private static final Log log = new Log();
 
   public Events() {
-    super(Mode.OPTIONAL, Mode.IGNORE);
+    super(method -> new Config(OPTIONAL, IGNORE));
   }
 
   @Override
@@ -63,11 +65,11 @@ public class Events extends TwiMLServlet {
           if (task.containsKey("VoiceCall")) {
             log.debug(() -> "%s cancelled (%s)".formatted(task.get("VoiceCall"), request.getParameter("Reason")));
             Locator.update(call, "Events", copy -> {
-              copy.setResolution(Resolution.DROPPED);
+              copy.setResolution(DROPPED);
             });
           } else if (task.containsKey("Lead")) {
             Locator.update(call, "Events", copy -> {
-              copy.setResolution(Resolution.DROPPED);
+              copy.setResolution(DROPPED);
               copy.setBlame(Agent.system());
               copy.setDuration(ChronoUnit.SECONDS.between(copy.getCreated(), LocalDateTime.now()));
               copy.setTalkTime(0);
@@ -94,12 +96,7 @@ public class Events extends TwiMLServlet {
     switch (request.getParameter("EventType")) {
       case "task.cancelled" -> {
         var task = JsonMap.parse(request.getParameter("TaskAttributes"));
-        return Stream
-          .of("VoiceCall", "Lead")
-          .map(task::get)
-          .filter(Objects::nonNull)
-          .findFirst()
-          .orElse(null);
+        return Stream.of("VoiceCall", "Lead").map(task::get).filter(Objects::nonNull).findFirst().orElse(null);
       }
       default -> {
         return null;

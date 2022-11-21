@@ -14,13 +14,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
 import static com.ameriglide.phenix.core.Strings.isEmpty;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.CREATE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.THROW;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.THROW;
 
 @WebServlet("/twilio/voice/transfer")
 public class Transfer extends TwiMLServlet {
   public Transfer() {
-    super(THROW, CREATE);
+    super(method -> new Config(THROW, CREATE));
   }
 
   @Override

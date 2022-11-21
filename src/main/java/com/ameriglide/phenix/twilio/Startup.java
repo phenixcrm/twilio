@@ -4,6 +4,7 @@ import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.core.ExecutorServices;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.servlet.topics.HudTopic;
 import com.ameriglide.phenix.twilio.tasks.SyncWorkerSkills;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.rest.api.v2010.account.Call;
@@ -17,6 +18,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import static com.ameriglide.phenix.common.Call.isActiveVoiceCall;
@@ -48,6 +50,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
     }, secs, TimeUnit.SECONDS);
     executor.scheduleWithFixedDelay(()-> {
       var activeSids = Startup.router.getCalls().map(Call::getSid).collect(Collectors.toSet());
+      var closed = new AtomicBoolean(false);
       Locator.forEach(isActiveVoiceCall, call-> {
         if(!activeSids.contains(call.sid)) {
           Locator.update(call,"Closer",copy->{
@@ -55,8 +58,14 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
               Optionals.of(call.getActiveAgent()).map(Agent::getFullName).orElse("nobody")));
             copy.setResolution(Resolution.DROPPED);
           });
+          Assignment.clear(call);
+          closed.set(true);
         }
       });
+      if(closed.get()) {
+        log.info(()->"requesting hud refresh after stuck calls closed");
+        Startup.topics.hud().publish(HudTopic.PRODUCE);
+      }
     }, 0, 15, TimeUnit.SECONDS);
 
   }

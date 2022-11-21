@@ -9,22 +9,21 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.CREATE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 
 @WebServlet("/twilio/voice/mail")
 public class Mail extends TwiMLServlet {
   private static final Log log = new Log();
 
   public Mail() {
-    super(CREATE, IGNORE);
+    super(method -> new Config(CREATE, IGNORE));
   }
 
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, final Call call,
                       final Leg leg) throws Exception {
-    respond(response,
-      new VoiceResponse.Builder().say(speak("Goodbye")).hangup(hangup).build());
+    respond(response, new VoiceResponse.Builder().say(speak("Goodbye")).hangup(hangup).build());
   }
 
   @Override

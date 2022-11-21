@@ -22,16 +22,12 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.IGNORE;
-import static com.ameriglide.phenix.servlet.TwiMLServlet.Mode.THROW;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
+import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.THROW;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/menu/*")
 public class Menu extends TwiMLServlet {
-  public Menu() {
-    super(THROW, IGNORE);
-  }
-
   private static final Supplier<Map<String, Step>> menus = Suppliers.memoize(() -> {
     var steps = new HashMap<String, Step>(2);
     steps.put("main", new Main());
@@ -42,8 +38,12 @@ public class Menu extends TwiMLServlet {
   private static final Function<String, Optional<Matcher>> matcher = Strings.matcher(
     Pattern.compile("/twilio/menu/(.*)"));
   private static final Log log = new Log();
+  public Menu() {
+    super(method -> new Config(THROW, IGNORE));
+  }
 
-  public static VoiceResponse enter(final String step, final HttpServletRequest request, final HttpServletResponse response) {
+  public static VoiceResponse enter(final String step, final HttpServletRequest request,
+                                    final HttpServletResponse response) {
     log.debug(() -> "%s Entering menu %s".formatted(request.getParameter("CallSid"), step));
     var steps = menus.get();
     return Optionals
