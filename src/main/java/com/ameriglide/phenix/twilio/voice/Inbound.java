@@ -59,7 +59,7 @@ public class Inbound extends TwiMLServlet {
           if (Locator.find(Call.isActiveVoiceCall, c -> calledAgent.equals(c.getActiveAgent()))!=null) {
             log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
               calledAgent.getFullName()));
-            twiml = new VoiceResponse.Builder().redirect(toVoicemail).build();
+            twiml = new VoiceResponse.Builder().redirect(toVoicemail()).build();
           } else {
             twiml = new VoiceResponse.Builder()
               .dial(Status.watch(called).answerOnBridge(true).timeout(15).build())
@@ -101,7 +101,7 @@ public class Inbound extends TwiMLServlet {
           if (Locator.find(Call.isActiveVoiceCall, c -> vCid.getDirect().equals(c.getActiveAgent()))!=null) {
             log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
               vCid.getDirect().getFullName()));
-            twiml = new VoiceResponse.Builder().redirect(toVoicemail).build();
+            twiml = new VoiceResponse.Builder().redirect(toVoicemail()).build();
           } else {
             twiml = new VoiceResponse.Builder()
               .dial(Status.watch(asParty(vCid.getDirect())).answerOnBridge(true).timeout(15).build())
@@ -146,7 +146,7 @@ public class Inbound extends TwiMLServlet {
       return builder
         .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
           + "M Eastern Standard Time, Monday through Saturday."))
-        .redirect(toVoicemail);
+        .redirect(toVoicemail());
     }
     log.info(() -> "%s is being placed in queue %s".formatted(call.sid, q.getName()));
     // straight to task router
@@ -184,11 +184,5 @@ public class Inbound extends TwiMLServlet {
         .build());
     return builder;
   }
-
-  protected void post(HttpServletRequest request, HttpServletResponse response, Call call) {
-
-
-  }
-
 
 }

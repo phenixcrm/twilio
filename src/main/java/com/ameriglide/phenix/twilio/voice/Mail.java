@@ -33,7 +33,7 @@ public class Mail extends TwiMLServlet {
     respond(response, new VoiceResponse.Builder()
       .pause(pause(2))
       .say(speak("The party you are trying to reach is not available. Please leave a message"))
-      .record(Recorder.watcher.build())
+      .record(Recorder.voicemail.build())
       .build());
   }
 }

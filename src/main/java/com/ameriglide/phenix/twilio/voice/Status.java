@@ -38,18 +38,19 @@ public class Status extends TwiMLServlet {
   }
 
   protected static Dial.Builder watch(Party party, int timeout) {
-    var builder = Recorder.watch().method(GET).action("/twilio/voice/complete").answerOnBridge(true).timeout(timeout);
+    var builder =
+      Recorder.dial().method(GET).action(router.getApi("/voice/complete")).answerOnBridge(true).timeout(timeout);
     if (party.isAgent()) {
       return builder.sip(new Sip.Builder(party.sip())
         .statusCallbackMethod(GET)
         .statusCallbackEvents(List.of(Sip.Event.RINGING, Sip.Event.ANSWERED, Sip.Event.COMPLETED))
-        .statusCallback(router.getAbsolutePath("/twilio/voice/status", null))
+        .statusCallback(router.getApi("/voice/status"))
         .build());
     } else {
       return builder.number(new Number.Builder(toDial(party.endpoint()))
         .statusCallbackMethod(GET)
         .statusCallbackEvents(List.of(Number.Event.ANSWERED, Number.Event.COMPLETED))
-        .statusCallback(router.getAbsolutePath("/twilio/voice/status", null))
+        .statusCallback(router.getApi("/voice/status"))
         .build());
     }
 
@@ -106,7 +107,7 @@ public class Status extends TwiMLServlet {
               }
               callCopy.setDuration(SECONDS.between(callCopy.getCreated(), legCopy.getEnded()));
             });
-            Assignment.clear(call);
+            Assignment.clear(call.getAgent());
           }
           case "in-progress", "answered" -> {
             legCopy.setAnswered(now());
@@ -118,7 +119,7 @@ public class Status extends TwiMLServlet {
               callCopy.setDuration(SECONDS.between(callCopy.getCreated(), legCopy.getEnded()));
               callCopy.setResolution(DROPPED);
             });
-            Assignment.clear(call);
+            Assignment.clear(call.getAgent());
           }
           default -> {
             log.info(() -> "%s is %s".formatted(call.sid, request.getParameter("CallStatus")));

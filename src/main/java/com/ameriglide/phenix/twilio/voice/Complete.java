@@ -22,6 +22,7 @@ public class Complete extends TwiMLServlet {
 
 
   private static final Log log = new Log();
+  public static String callback;
 
   public Complete() {
     super(method -> new Config(THROW, IGNORE));
@@ -42,9 +43,20 @@ public class Complete extends TwiMLServlet {
     call.setRecordingSid(request.getParameter("RecordingSid"));
   }
 
+  /**
+   * handle the completion of enqueued calls
+   */
   @Override
-  protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
-    Exception {
+  protected void post(final HttpServletRequest request, final HttpServletResponse response, final Call call,
+                      final Leg leg) throws Exception {
+    //todo: implement queue call post handling
+  }
+
+  /**
+   * handle the completion of ordinary (not enqueued) calls
+   */
+  @Override
+  protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws Exception {
     var called = asParty(request, "To");
     switch (request.getParameter("DialCallStatus")) {
       case "completed":
@@ -68,7 +80,7 @@ public class Complete extends TwiMLServlet {
           } else {
             log.debug(() -> "Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
               agent.getFullName()));
-            respond(response, new VoiceResponse.Builder().redirect(toVoicemail).build());
+            respond(response, new VoiceResponse.Builder().redirect(toVoicemail()).build());
           }
         } else if (call.getDirection()!=CallDirection.OUTBOUND) {
           var agent = call.getDialingAgent();
@@ -85,7 +97,7 @@ public class Complete extends TwiMLServlet {
               log.debug(() -> "Redirecting to generic voicemail");
             }
           }
-          respond(response, new VoiceResponse.Builder().redirect(toVoicemail).build());
+          respond(response, new VoiceResponse.Builder().redirect(toVoicemail()).build());
         } else {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
         }

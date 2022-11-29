@@ -14,6 +14,7 @@ import net.inetalliance.potion.Locator;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 
+import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.*;
 
 public class Customer extends Menu.Step {
@@ -30,12 +31,12 @@ public class Customer extends Menu.Step {
                             + "until 9PM eastern standard time. Please leave a message, and we will return your call "
                             + "promptly "
                             + "as soon as we open"))
-                    .redirect(toVoicemail)
+                    .redirect(toVoicemail())
                     .build();
         }
         return new VoiceResponse.Builder()
                 .gather(new Gather.Builder()
-                        .action("/twilio/menu/customer")
+                        .action(router.getApi("/menu/customer"))
                         .numDigits(1)
                         .say(speak("Thank you for choosing AmeraGlide! If you have questions about an existing order, "
                                         + "or need assistance with shipping or tracking information, please press 1. "
@@ -44,7 +45,7 @@ public class Customer extends Menu.Step {
                                         + "inquiries, please press 3.",
                                 2))
                         .build())
-                .redirect(toVoicemail)
+                .redirect(toVoicemail())
                 .build();
     }
 
@@ -63,7 +64,7 @@ public class Customer extends Menu.Step {
             case "2" -> Inbound.enqueue(builder, caller, call,
                     Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(), Source.PHONE);
             default -> {
-                return new VoiceResponse.Builder().redirect(toVoicemail).build();
+                return new VoiceResponse.Builder().redirect(toVoicemail()).build();
             }
         }
         return builder.build();

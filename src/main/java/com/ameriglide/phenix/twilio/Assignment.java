@@ -16,6 +16,7 @@ import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.JsonMap;
 
 import static com.ameriglide.phenix.servlet.Startup.shared;
+import static com.ameriglide.phenix.servlet.Startup.topics;
 import static net.inetalliance.potion.Locator.update;
 
 @WebServlet("/twilio/assignment")
@@ -25,11 +26,14 @@ public class Assignment extends PhenixServlet {
   public Assignment() {
   }
 
-  public static void clear(final Call call) {
-    var agent = call.getAgent();
+  public static void clear(final Agent agent) {
     if (agent!=null) {
       var status = shared.availability().get(agent.id);
       shared.availability().put(agent.id, status==null ? new AgentStatus(agent):status.withCall(null));
+      topics
+        .events()
+        .publishAsync(
+          new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("clear", true)));
     }
   }
 
@@ -53,7 +57,7 @@ public class Assignment extends PhenixServlet {
       copy.setBlame(agent);
     });
     if (attributes.containsKey("VoiceCall")) {
-      Startup.router.voiceTask(task,reservation,new PhoneNumber(attributes.get("caller")),agent,callSid);
+      Startup.router.voiceTask(task, reservation, new PhoneNumber(attributes.get("caller")), agent, callSid);
       response.sendError(200);
     } else {
       var opp = attributes.containsKey("Lead") ? Locator.$(
@@ -73,7 +77,7 @@ public class Assignment extends PhenixServlet {
   }
 
   public static void pop(Agent agent, String callSid) {
-    Startup.topics
+    topics
       .events()
       .publishAsync(new JsonMap().$("agent", agent.id).$("type", "pop").$("event", new JsonMap().$("callId", callSid)));
   }
@@ -82,7 +86,7 @@ public class Assignment extends PhenixServlet {
     var agent = call.getAgent();
     var status = shared.availability().get(agent.id);
     shared.availability().put(agent.id, status==null ? new AgentStatus(agent, call):status.withCall(call));
-    Startup.topics
+    topics
       .events()
       .publishAsync(
         new JsonMap().$("agent", agent.id).$("type", "status").$("event", new JsonMap().$("call", call.sid)));

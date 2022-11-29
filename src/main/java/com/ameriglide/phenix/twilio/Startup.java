@@ -58,7 +58,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
               Optionals.of(call.getActiveAgent()).map(Agent::getFullName).orElse("nobody")));
             copy.setResolution(Resolution.DROPPED);
           });
-          Assignment.clear(call);
+          Assignment.clear(call.getAgent());
           closed.set(true);
         }
       });
