@@ -49,7 +49,7 @@ public class Events extends TwiMLServlet {
           if (status==null) {
             shared.availability().put(agent.id, new AgentStatus(agent, availableNow));
           }
-          if (status!=null && status.available()!=availableNow) {
+          if (status!=null && status.available!=availableNow) {
             shared.availability().put(agent.id, status.toggleAvailability());
             topics
               .events()
