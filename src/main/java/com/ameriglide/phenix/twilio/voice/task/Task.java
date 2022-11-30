@@ -37,6 +37,9 @@ public class Task extends TwiMLServlet {
     Exception {
     var params = new Params(request);
     switch (request.getParameter("CallStatus")) {
+      case "ringing" -> Locator.update(leg, "Task", copy -> {
+        copy.setAgent(TwiMLServlet.asParty(request,"Called").agent());
+      });
       case "busy" -> {
         try {
           router.rejectReservation(params.task(), params.reservation(), leg.getAgent());
