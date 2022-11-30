@@ -28,7 +28,4 @@ dependencies {
     'org.redisson:redisson:3.18.0',
     'io.github.cdimascio:dotenv-java:2.3.1')
 
-  runtimeOnly(
-    'org.slf4j:slf4j-simple:1.7.36'
-  )
 }
