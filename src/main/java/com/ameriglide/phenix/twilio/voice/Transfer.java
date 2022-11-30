@@ -1,9 +1,6 @@
 package com.ameriglide.phenix.twilio.voice;
 
-import com.ameriglide.phenix.common.Agent;
-import com.ameriglide.phenix.common.Call;
-import com.ameriglide.phenix.common.Leg;
-import com.ameriglide.phenix.common.VerifiedCallerId;
+import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Dial;
@@ -34,10 +31,10 @@ public class Transfer extends TwiMLServlet {
         throw new IllegalArgumentException("Must provide agent or number parameter");
       } else {
         var vCid = Locator.$1(VerifiedCallerId.isDefault);
-        dial = Status.watch(asParty(new PhoneNumber(number))).callerId(vCid.getPhoneNumber());
+        dial = Status.watch(new Party(new PhoneNumber(number))).callerId(vCid.getPhoneNumber());
       }
     } else {
-      dial = Status.watch(asParty(Locator.$(new Agent(Integer.parseInt(agentId)))));
+      dial = Status.watch(new Party(Locator.$(new Agent(Integer.parseInt(agentId)))));
     }
     respond(response, new VoiceResponse.Builder().dial(dial.build()).build());
   }

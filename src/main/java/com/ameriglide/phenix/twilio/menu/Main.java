@@ -1,5 +1,6 @@
 package com.ameriglide.phenix.twilio.menu;
 
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.core.Log;
@@ -45,7 +46,7 @@ public class Main extends Menu.Step {
     var digits = Optionals.of(request.getParameter("Digits")).orElse("0");
     log.debug(() -> "%s Processing main menu input (%s)".formatted(request.getParameter("CallSid"), digits));
     var callSid = request.getParameter("CallSid");
-    var caller = TwiMLServlet.asParty(request, "Caller");
+    var caller = new Party(request, "Caller");
     var call = Locator.$(new com.ameriglide.phenix.common.Call(callSid));
     if (call==null) {
       throw new NotFoundException("No call found for " + callSid);

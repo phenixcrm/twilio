@@ -3,6 +3,7 @@ package com.ameriglide.phenix.twilio.voice;
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
@@ -42,8 +43,8 @@ public class Inbound extends TwiMLServlet {
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
     Locator.update(call, "Inbound", copy -> {
-      var called = asParty(request, "Called");
-      var caller = asParty(request, "Caller");
+      var called = new Party(request, "Called");
+      var caller = new Party(request, "Caller");
       caller.setCNAM(copy);
       final boolean notify;
       final boolean pop;
@@ -104,7 +105,7 @@ public class Inbound extends TwiMLServlet {
             twiml = new VoiceResponse.Builder().redirect(toVoicemail()).build();
           } else {
             twiml = new VoiceResponse.Builder()
-              .dial(Status.watch(asParty(vCid.getDirect())).answerOnBridge(true).timeout(15).build())
+              .dial(Status.watch(new Party(vCid.getDirect())).answerOnBridge(true).timeout(15).build())
               .build();
           }
         } else { // brand new queue call

@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.common.VerifiedCallerId;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
@@ -22,7 +23,6 @@ public class Complete extends TwiMLServlet {
 
 
   private static final Log log = new Log();
-  public static String callback;
 
   public Complete() {
     super(method -> new Config(THROW, IGNORE));
@@ -48,7 +48,7 @@ public class Complete extends TwiMLServlet {
    */
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, final Call call,
-                      final Leg leg) throws Exception {
+                      final Leg leg) {
     //todo: implement queue call post handling
   }
 
@@ -57,7 +57,7 @@ public class Complete extends TwiMLServlet {
    */
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws Exception {
-    var called = asParty(request, "To");
+    var called = new Party(request, "To");
     switch (request.getParameter("DialCallStatus")) {
       case "completed":
         if (!"completed".equals(request.getParameter("CallStatus"))) {

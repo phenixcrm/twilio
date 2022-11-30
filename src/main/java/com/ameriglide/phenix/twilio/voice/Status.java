@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -38,8 +39,12 @@ public class Status extends TwiMLServlet {
   }
 
   protected static Dial.Builder watch(Party party, int timeout) {
-    var builder =
-      Recorder.dial().method(GET).action(router.getApi("/voice/complete")).answerOnBridge(true).timeout(timeout);
+    var builder = Recorder
+      .dial()
+      .method(GET)
+      .action(router.getApi("/voice/complete"))
+      .answerOnBridge(true)
+      .timeout(timeout);
     if (party.isAgent()) {
       return builder.sip(new Sip.Builder(party.sip())
         .statusCallbackMethod(GET)
@@ -73,22 +78,22 @@ public class Status extends TwiMLServlet {
       // we have an update on a leg
       Locator.update(leg, "Status", legCopy -> {
         switch (call.getDirection()) {
-          case QUEUE -> legCopy.setAgent(asParty(request, "To").agent());
+          case QUEUE -> legCopy.setAgent(new Party(request, "To").agent());
           case INBOUND -> {
           }
           case OUTBOUND -> {
             if ("outbound-dial".equals(request.getParameter("Direction"))) {
-              var called = asParty(request, "To");
+              var called = new Party(request, "To");
               if (called.isAgent()) {
                 legCopy.setAgent(called.agent());
               } else {
                 legCopy.setAgent(call.getAgent());
-                asParty(request, "Called").setCNAM(legCopy);
+                new Party(request, "Called").setCNAM(legCopy);
               }
             }
           }
           case INTERNAL -> {
-            var to = asParty(request, "To");
+            var to = new Party(request, "To");
             if (to.isAgent()) {
               legCopy.setAgent(to.agent());
             } else {
@@ -121,9 +126,7 @@ public class Status extends TwiMLServlet {
             });
             Assignment.clear(call.getAgent());
           }
-          default -> {
-            log.info(() -> "%s is %s".formatted(call.sid, request.getParameter("CallStatus")));
-          }
+          default -> log.info(() -> "%s is %s".formatted(call.sid, request.getParameter("CallStatus")));
         }
       });
     }

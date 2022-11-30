@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio.voice.task;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
@@ -38,7 +39,7 @@ public class Task extends TwiMLServlet {
     var params = new Params(request);
     switch (request.getParameter("CallStatus")) {
       case "ringing" -> Locator.update(leg, "Task", copy -> {
-        copy.setAgent(TwiMLServlet.asParty(request,"Called").agent());
+        copy.setAgent(new Party(request,"Called").agent());
       });
       case "busy" -> {
         try {

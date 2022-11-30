@@ -5,6 +5,7 @@ import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
@@ -44,9 +45,9 @@ public class OutboundDial extends TwiMLServlet {
       if (isEmpty(number)) {
         throw new IllegalArgumentException();
       }
-      called = asParty(new PhoneNumber(number));
+      called = new Party(new PhoneNumber(number));
     } else {
-      called = asParty(Locator.$(new Agent(Integer.parseInt(agent))));
+      called = new Party(Locator.$(new Agent(Integer.parseInt(agent))));
     }
     // call the caller and then connect to the called party
     var builder = new VoiceResponse.Builder();
