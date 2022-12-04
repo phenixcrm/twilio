@@ -68,9 +68,10 @@ public class Events extends TwiMLServlet {
             Locator.update(call, "Events", copy -> {
               copy.setResolution(DROPPED);
             });
-            if("Task TTL Exceeded".equals(reason)) {
-              log.info(()->"%s being sent to voicemail".formatted(call.sid));
-              Startup.router.sendToVoicemail(call.sid);
+            if ("Task TTL Exceeded".equals(reason)) {
+              log.info(() -> "%s being sent to voicemail".formatted(call.sid));
+              Startup.router.sendToVoicemail(call.sid, "Our staff are presently unavailable. Please leave a message "
+                + "and we will return your call as soon as possible");
             }
           } else if (task.containsKey("Lead")) {
             Locator.update(call, "Events", copy -> {

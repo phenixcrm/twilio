@@ -3,7 +3,6 @@ package com.ameriglide.phenix.twilio.voice;
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
-import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
@@ -60,7 +59,9 @@ public class Inbound extends TwiMLServlet {
           if (Locator.find(Call.isActiveVoiceCall, c -> calledAgent.equals(c.getActiveAgent()))!=null) {
             log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
               calledAgent.getFullName()));
-            twiml = new VoiceResponse.Builder().redirect(toVoicemail()).build();
+            twiml = new VoiceResponse.Builder()
+              .redirect(toVoicemail("%s is on the phone. Please leave a message.".formatted(calledAgent.getFullName())))
+              .build();
           } else {
             twiml = new VoiceResponse.Builder()
               .dial(Status.watch(called).answerOnBridge(true).timeout(15).build())
@@ -102,7 +103,10 @@ public class Inbound extends TwiMLServlet {
           if (Locator.find(Call.isActiveVoiceCall, c -> vCid.getDirect().equals(c.getActiveAgent()))!=null) {
             log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
               vCid.getDirect().getFullName()));
-            twiml = new VoiceResponse.Builder().redirect(toVoicemail()).build();
+            twiml = new VoiceResponse.Builder()
+              .redirect(toVoicemail("%s is on the phone. Please leave a message and your "
+                + "call will be returned as soon as possible".formatted(vCid.getDirect().getFullName())))
+              .build();
           } else {
             twiml = new VoiceResponse.Builder()
               .dial(Status.watch(new Party(vCid.getDirect())).answerOnBridge(true).timeout(15).build())
@@ -144,10 +148,9 @@ public class Inbound extends TwiMLServlet {
     var now = LocalDateTime.now();
     if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(call.sid, q.getName()));
-      return builder
-        .say(speak("Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 8 P "
-          + "M Eastern Standard Time, Monday through Saturday."))
-        .redirect(toVoicemail());
+      return builder.redirect(toVoicemail(
+        "Thank you for calling Ameraglide. We are presently closed. Our busines hours are 8 A M until 9 P M"
+          + "Eastern Standard Time, Monday through Saturday."));
     }
     log.info(() -> "%s is being placed in queue %s".formatted(call.sid, q.getName()));
     // straight to task router

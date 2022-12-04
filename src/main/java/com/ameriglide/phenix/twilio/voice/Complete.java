@@ -56,7 +56,8 @@ public class Complete extends TwiMLServlet {
    * handle the completion of ordinary (not enqueued) calls
    */
   @Override
-  protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws Exception {
+  protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
+    Exception {
     var called = new Party(request, "To");
     switch (request.getParameter("DialCallStatus")) {
       case "completed":
@@ -80,7 +81,9 @@ public class Complete extends TwiMLServlet {
           } else {
             log.debug(() -> "Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
               agent.getFullName()));
-            respond(response, new VoiceResponse.Builder().redirect(toVoicemail()).build());
+            respond(response, new VoiceResponse.Builder()
+              .redirect(toVoicemail("%s is not available. Please leave a message".formatted(agent.getFullName())))
+              .build());
           }
         } else if (call.getDirection()!=CallDirection.OUTBOUND) {
           var agent = call.getDialingAgent();
@@ -97,7 +100,9 @@ public class Complete extends TwiMLServlet {
               log.debug(() -> "Redirecting to generic voicemail");
             }
           }
-          respond(response, new VoiceResponse.Builder().redirect(toVoicemail()).build());
+          respond(response, new VoiceResponse.Builder()
+            .redirect(toVoicemail("Please leave a message, and we will return your call " + "as soon as possible"))
+            .build());
         } else {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
         }
