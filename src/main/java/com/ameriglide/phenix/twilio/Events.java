@@ -63,10 +63,15 @@ public class Events extends TwiMLServlet {
         case "task.canceled" -> {
           var task = JsonMap.parse(request.getParameter("TaskAttributes"));
           if (task.containsKey("VoiceCall")) {
-            log.debug(() -> "%s cancelled (%s)".formatted(task.get("VoiceCall"), request.getParameter("Reason")));
+            var reason = request.getParameter("Reason");
+            log.debug(() -> "%s cancelled (%s)".formatted(task.get("VoiceCall"), reason));
             Locator.update(call, "Events", copy -> {
               copy.setResolution(DROPPED);
             });
+            if("Task TTL Exceeded".equals(reason)) {
+              log.info(()->"%s being sent to voicemail".formatted(call.sid));
+              Startup.router.sendToVoicemail(call.sid);
+            }
           } else if (task.containsKey("Lead")) {
             Locator.update(call, "Events", copy -> {
               copy.setResolution(DROPPED);

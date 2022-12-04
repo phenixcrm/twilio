@@ -45,11 +45,10 @@ public class Join extends TwiMLServlet {
             () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
           router.join(params.connect(), params.reservation());
         } else {
-          var activeLeg = call.getLastLeg();
-          log.debug(() -> "agent %s accepted reservation %s for %s".formatted(activeLeg.getAgent().getFullName(),
+          log.debug(() -> "agent %s accepted reservation %s for %s".formatted(leg.getAgent().getFullName(),
             params.reservation(),params.task()));
           router.acceptReservation(params.task(), params.reservation());
-          Locator.update(activeLeg, "Join", copy -> {
+          Locator.update(leg, "Join", copy -> {
             copy.setAnswered(LocalDateTime.now());
           });
         }

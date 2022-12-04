@@ -17,6 +17,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static com.ameriglide.phenix.servlet.Startup.router;
@@ -39,7 +40,7 @@ public class Task extends TwiMLServlet {
     var params = new Params(request);
     switch (request.getParameter("CallStatus")) {
       case "ringing" -> Locator.update(leg, "Task", copy -> {
-        copy.setAgent(new Party(request,"Called").agent());
+        copy.setAgent(new Party(request, "Called").agent());
       });
       case "busy" -> {
         try {
@@ -53,6 +54,10 @@ public class Task extends TwiMLServlet {
       case "no-answer" -> {
         log.info(() -> "%s declined the task %s for %s".formatted(params.agent().getFullName(), params.task(),
           call.getPhone()));
+        Locator.update(leg, "Task", copy -> {
+          copy.setAgent(new Party(request, "Called").agent());
+          copy.setEnded(LocalDateTime.now());
+        });
         Assignment.clear(call.getAgent());
 
       }
@@ -67,7 +72,7 @@ public class Task extends TwiMLServlet {
     if (Strings.isNotEmpty(params.task())) {
       log.debug(() -> "%s creating conference %s for %s (%s)".formatted(params.task(), params.reservation(),
         params.agent().getFullName(), params.connect()));
-      Locator.update(leg,"Task",copy->{
+      Locator.update(leg, "Task", copy -> {
         copy.setAgent(params.agent());
       });
       var qs = params.toNamedValues();
@@ -75,7 +80,8 @@ public class Task extends TwiMLServlet {
         .say(speak(call.getQueue().getAnnouncement()))
         .dial(new Dial.Builder()
           .answerOnBridge(true)
-          .conference(Recorder.conference(params.reservation(),call)
+          .conference(Recorder
+            .conference(params.reservation(), call)
             .participantLabel(Integer.toString(params.agent().id))
             .startConferenceOnEnter(false)
             .endConferenceOnExit(true)
