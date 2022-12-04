@@ -99,7 +99,7 @@ public class Events extends TwiMLServlet {
   @Override
   protected String getCallSid(HttpServletRequest request) {
     switch (request.getParameter("EventType")) {
-      case "task.cancelled" -> {
+      case "task.canceled" -> {
         var task = JsonMap.parse(request.getParameter("TaskAttributes"));
         return Stream.of("VoiceCall", "Lead").map(task::get).filter(Objects::nonNull).findFirst().orElse(null);
       }
