@@ -73,6 +73,14 @@ public class Events extends TwiMLServlet {
               Startup.router.sendToVoicemail(call.sid, "Our staff are presently unavailable. Please leave a message "
                 + "and we will return your call as soon as possible");
             }
+            shared
+              .availability()
+              .values()
+              .stream()
+              .filter(s -> call.sid.equals(s.call))
+              .map(s -> s.id)
+              .map(id -> Locator.$(new Agent(id)))
+              .forEach(Assignment::clear);
           } else if (task.containsKey("Lead")) {
             Locator.update(call, "Events", copy -> {
               copy.setResolution(DROPPED);
