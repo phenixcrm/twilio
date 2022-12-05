@@ -70,7 +70,6 @@ public class Assignment extends PhenixServlet {
         });
       }
       PhenixServlet.respond(response, new JsonMap().$("instruction", "accept"));
-      Startup.router.completeTask(task);
     }
     pop(agent, callSid);
     notify(call);
