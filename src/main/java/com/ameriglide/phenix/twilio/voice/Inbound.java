@@ -42,8 +42,8 @@ public class Inbound extends TwiMLServlet {
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
     Locator.update(call, "Inbound", copy -> {
-      var called = new Party(request, "Called");
-      var caller = new Party(request, "Caller");
+      var called = Party.fromRequest(request, "Called");
+      var caller = Party.fromRequest(request, "Caller");
       caller.setCNAM(copy);
       final boolean notify;
       final boolean pop;

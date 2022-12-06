@@ -58,7 +58,7 @@ public class Join extends TwiMLServlet {
           }
         } else {
           log.debug(
-            () -> "remote party %s joined the conferance %s for %s".formatted(call.getPhone(), params.reservation(),
+            () -> "remote party %s joined the conference %s for %s".formatted(call.getPhone(), params.reservation(),
               params.task()));
         }
       } case "conference-start" -> {

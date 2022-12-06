@@ -1,12 +1,12 @@
 package com.ameriglide.phenix.twilio.menu;
 
+import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
-import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.twilio.voice.Inbound;
 import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
@@ -42,15 +42,10 @@ public class Main extends Menu.Step {
   }
 
   @Override
-  public VoiceResponse process(HttpServletRequest request, HttpServletResponse response) {
+  public VoiceResponse process(HttpServletRequest request, HttpServletResponse response, Call call) {
     var digits = Optionals.of(request.getParameter("Digits")).orElse("0");
-    log.debug(() -> "%s Processing main menu input (%s)".formatted(request.getParameter("CallSid"), digits));
-    var callSid = request.getParameter("CallSid");
-    var caller = new Party(request, "Caller");
-    var call = Locator.$(new com.ameriglide.phenix.common.Call(callSid));
-    if (call==null) {
-      throw new NotFoundException("No call found for " + callSid);
-    }
+    var caller = Party.fromRequest(request, "Caller");
+
     var builder = new VoiceResponse.Builder();
 
     switch (digits) {

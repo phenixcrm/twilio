@@ -1,9 +1,9 @@
 package com.ameriglide.phenix.twilio.menu;
 
+import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.common.WorkflowAssignment;
-import com.ameriglide.phenix.servlet.exception.NotFoundException;
 import com.ameriglide.phenix.twilio.voice.Inbound;
 import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
@@ -54,14 +54,9 @@ public class Customer extends Menu.Step {
   }
 
   @Override
-  VoiceResponse process(HttpServletRequest request, HttpServletResponse response) {
+  VoiceResponse process(HttpServletRequest request, HttpServletResponse response, Call call) {
     var builder = new VoiceResponse.Builder();
-    var callSid = request.getParameter("CallSid");
-    var caller = new Party(request, "Caller");
-    var call = Locator.$(new com.ameriglide.phenix.common.Call(callSid));
-    if (call==null) {
-      throw new NotFoundException("No call found for " + callSid);
-    }
+    var caller = Party.fromRequest(request, "Caller");
     switch (request.getParameter("Digits")) {
       case "1", "3" ->
         Inbound.enqueue(builder, caller, call, Locator.$(new WorkflowAssignment(CallType.SERVICE)).getQueue(),
