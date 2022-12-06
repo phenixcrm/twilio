@@ -38,6 +38,7 @@ public class Menu extends TwiMLServlet {
   private static final Function<String, Optional<Matcher>> matcher = Strings.matcher(
     Pattern.compile("/twilio/menu/(.*)"));
   private static final Log log = new Log();
+
   public Menu() {
     super(method -> new Config(THROW, IGNORE));
   }
@@ -61,7 +62,7 @@ public class Menu extends TwiMLServlet {
       .orElseThrow(() -> new BadRequestException("request did not match /twilio/menu/.*"));
     var s = m.group(1);
     var step = Optionals.of(steps.get(s)).orElseThrow(() -> new NotFoundException("no menu for " + s));
-    respond(response, step.process(request, response));
+    respond(response, step.process(request, response, call));
   }
 
   @Override
@@ -74,7 +75,7 @@ public class Menu extends TwiMLServlet {
 
     abstract VoiceResponse gather(HttpServletRequest request, HttpServletResponse response);
 
-    abstract VoiceResponse process(HttpServletRequest request, HttpServletResponse response);
+    abstract VoiceResponse process(HttpServletRequest request, HttpServletResponse response, Call call);
 
   }
 }
