@@ -58,29 +58,11 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
       shared.availability().values().stream().map(s -> s.call).filter(Strings::isNotEmpty).forEach(open::add);
       var stuck = new HashSet<Integer>();
       var closedStates = Set.of(COMPLETED, BUSY, FAILED, NO_ANSWER, CANCELED);
-      var closed = open
-        .stream()
-        .filter(sid -> {
-          var call =  router.getCall(sid);
-          return call == null || closedStates.contains(call.getStatus());
-        })
-        .collect(toSet());
+      var closed = open.stream().filter(sid -> {
+        var call = router.getCall(sid);
+        return call==null || closedStates.contains(call.getStatus());
+      }).collect(toSet());
 
-
-
-      open.forEach(sid -> {
-        var twilioCall = router.getCall(sid);
-        var status = twilioCall.getStatus();
-        switch (status) {
-          case QUEUED, RINGING, IN_PROGRESS -> {
-            log.trace(() -> "%s is still in progress [%s]".formatted(sid, status));
-          }
-          case COMPLETED, BUSY, FAILED, NO_ANSWER, CANCELED -> {
-
-            closed.add(sid);
-          }
-        }
-      });
       if (!closed.isEmpty()) {
         log.info(() -> "requesting hud refresh after stuck calls closed");
         shared
@@ -88,9 +70,9 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
           .values()
           .stream()
           .filter(status -> status.call!=null && closed.contains(status.call))
-          .peek(s-> {
+          .peek(s -> {
             var call = Locator.$(new Call(s.call));
-            if(call != null) {
+            if (call!=null) {
               Locator.update(call, "Closer", copy -> {
                 log.info(() -> "closed stuck call %s for %s".formatted(call.sid,
                   Optionals.of(call.getActiveAgent()).map(Agent::getFullName).orElse("nobody")));
