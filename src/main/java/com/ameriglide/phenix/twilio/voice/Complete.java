@@ -58,16 +58,14 @@ public class Complete extends TwiMLServlet {
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
-    var called = new Party(request, "To");
+    var called = Party.fromRequest(request, "To");
     switch (request.getParameter("DialCallStatus")) {
-      case "completed":
+      case "completed" -> {
         if (!"completed".equals(request.getParameter("CallStatus"))) {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
         }
-        return;
-      case "busy":
-      case "failed":
-      case "no-answer":
+      }
+      case "busy", "failed", "no-answer" -> {
         if (called.isAgent()) {
           var agent = called.agent();
           if (agent==null) {
@@ -106,10 +104,8 @@ public class Complete extends TwiMLServlet {
         } else {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
         }
-        break;
-      default:
-        respond(response, new VoiceResponse.Builder().hangup(hangup).build());
-        break;
+      }
+      default -> respond(response, new VoiceResponse.Builder().hangup(hangup).build());
     }
   }
 

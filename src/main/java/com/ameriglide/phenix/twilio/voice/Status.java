@@ -63,7 +63,7 @@ public class Status extends TwiMLServlet {
 
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, final Call call,
-                      final Leg leg) throws Exception {
+                      final Leg leg) {
     // this is a recording update
     Locator.update(call, "Status", copy -> {
       Complete.finish(request, copy);
@@ -78,22 +78,22 @@ public class Status extends TwiMLServlet {
       // we have an update on a leg
       Locator.update(leg, "Status", legCopy -> {
         switch (call.getDirection()) {
-          case QUEUE -> legCopy.setAgent(new Party(request, "To").agent());
+          case QUEUE -> legCopy.setAgent(Party.fromRequest(request, "To").agent());
           case INBOUND -> {
           }
           case OUTBOUND -> {
             if ("outbound-dial".equals(request.getParameter("Direction"))) {
-              var called = new Party(request, "To");
+              var called = Party.fromRequest(request, "To");
               if (called.isAgent()) {
                 legCopy.setAgent(called.agent());
               } else {
                 legCopy.setAgent(call.getAgent());
-                new Party(request, "Called").setCNAM(legCopy);
+                Party.fromRequest(request, "Called").setCNAM(legCopy);
               }
             }
           }
           case INTERNAL -> {
-            var to = new Party(request, "To");
+            var to = Party.fromRequest(request, "To");
             if (to.isAgent()) {
               legCopy.setAgent(to.agent());
             } else {

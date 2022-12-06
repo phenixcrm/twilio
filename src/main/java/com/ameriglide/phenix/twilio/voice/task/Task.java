@@ -40,7 +40,7 @@ public class Task extends TwiMLServlet {
     var params = new Params(request);
     switch (request.getParameter("CallStatus")) {
       case "ringing" -> Locator.update(leg, "Task", copy -> {
-        copy.setAgent(new Party(request, "Called").agent());
+        copy.setAgent(Party.fromRequest(request, "Called").agent());
       });
       case "busy" -> {
         try {
@@ -55,7 +55,7 @@ public class Task extends TwiMLServlet {
         log.info(() -> "%s declined the task %s for %s".formatted(params.agent().getFullName(), params.task(),
           call.getPhone()));
         Locator.update(leg, "Task", copy -> {
-          copy.setAgent(new Party(request, "Called").agent());
+          copy.setAgent(Party.fromRequest(request, "Called").agent());
           copy.setEnded(LocalDateTime.now());
         });
         Assignment.clear(call.getAgent());
