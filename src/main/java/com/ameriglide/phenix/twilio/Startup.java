@@ -14,10 +14,10 @@ import net.inetalliance.potion.Locator;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.ameriglide.phenix.common.Call.isActiveVoiceCall;
 import static net.inetalliance.potion.Locator.forEach;
@@ -48,9 +48,8 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
 
     }, secs, TimeUnit.SECONDS);
     executor.scheduleWithFixedDelay(() -> {
-      var closed = new AtomicBoolean(false);
+      var closed = new HashSet<>();
       forEach(isActiveVoiceCall, call -> {
-        if (call.getCreated().plusMinutes(3).isBefore(now)) {
           var twilioCall = router.getCall(call.sid);
           var status = twilioCall.getStatus();
           switch (status) {
@@ -63,13 +62,21 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
                   Optionals.of(call.getActiveAgent()).map(Agent::getFullName).orElse("nobody")));
                 copy.setResolution(Resolution.DROPPED);
               });
-              closed.set(true);
+              closed.add(call.sid);
             }
           }
-        }
       });
-      if (closed.get()) {
+      if (!closed.isEmpty()) {
         log.info(() -> "requesting hud refresh after stuck calls closed");
+        shared
+          .availability()
+          .values()
+          .stream()
+          .filter(status -> status.call!=null && closed.contains(status.call))
+          .map(s -> s.id)
+          .map(Agent::new)
+          .map(Locator::$)
+          .forEach(Assignment::clear);
         Startup.topics.hud().publish(HudTopic.PRODUCE);
       }
     }, 0, 60, TimeUnit.SECONDS);
