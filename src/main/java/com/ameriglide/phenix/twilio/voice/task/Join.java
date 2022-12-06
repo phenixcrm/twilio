@@ -9,6 +9,7 @@ import com.ameriglide.phenix.servlet.Startup;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.types.Resolution;
+import com.twilio.exception.ApiException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Conference;
 import com.twilio.twiml.voice.Dial;
@@ -43,19 +44,24 @@ public class Join extends TwiMLServlet {
         if (particpant.isAgent()) {
           log.debug(
             () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
-          router.join(params.connect(), params.reservation());
-          Locator.update(leg, "Join", copy -> {
-            copy.setAgent(particpant.agent());
-            copy.setAnswered(LocalDateTime.now());
-          });
-          router.acceptReservation(params.task(), params.reservation());
+          try {
+            router.acceptReservation(params.task(), params.reservation());
+            router.join(params.connect(), params.reservation());
+            Locator.update(leg, "Join", copy -> {
+              copy.setAgent(particpant.agent());
+              copy.setAnswered(LocalDateTime.now());
+            });
+          } catch (ApiException e) {
+            log.warn(
+              () -> "got Twilio api error %d:%s when trying to accept %s for %s".formatted(e.getCode(), e.getMessage(),
+                params.reservation(), params.task()));
+          }
         } else {
           log.debug(
             () -> "remote party %s joined the conferance %s for %s".formatted(call.getPhone(), params.reservation(),
               params.task()));
         }
-      }
-      case "conference-start" -> {
+      } case "conference-start" -> {
         Startup.shared.conferences().put(call.sid, params.reservation());
         log.debug(() -> "remote party %s is in conference with agent %s".formatted(call.getPhone(),
           params.agent().getFullName()));
@@ -86,8 +92,6 @@ public class Join extends TwiMLServlet {
                      final Leg leg) throws Exception {
     var conference = request.getParameter("conference");
     log.info(() -> "remote party %s joining conference %s".formatted(call.getPhone(), conference));
-    Locator.update(leg, "Join", copy -> {
-    });
 
     respond(response, new VoiceResponse.Builder()
       .dial(new Dial.Builder()
