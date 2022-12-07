@@ -99,7 +99,7 @@ public class Task extends TwiMLServlet {
         .dial(new Dial.Builder()
           .answerOnBridge(true)
           .conference(new Conference.Builder(params.reservation())
-            .participantLabel(Integer.toString(params.agent().id))
+            .participantLabel(params.label())
             .endConferenceOnExit(true)
             .build())
           .build())
