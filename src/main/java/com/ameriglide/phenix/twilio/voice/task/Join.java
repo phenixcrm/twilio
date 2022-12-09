@@ -55,7 +55,8 @@ public class Join extends TwiMLServlet {
             () -> "agent %s left the conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
           var agentLeg = conference.agentSids().remove(particpant.agent.id);
           if (conference.shouldHangup()) {
-            log.info(() -> "last agent left the conference %s, hanging up %s and %s".formatted(params.reservation()));
+            log.info(() -> "last agent left the conference %s, hanging up %s and %s".formatted(params.reservation(),
+              call.sid,agentLeg));
             router.hangup(call.sid);
             router.hangup(agentLeg);
           }
@@ -139,7 +140,7 @@ public class Join extends TwiMLServlet {
         .conference(new Conference.Builder(conference)
           .participantLabel("remote")
           .startConferenceOnEnter(true)
-          .endConferenceOnExit(false)
+          .endConferenceOnExit(true)
           .build())
         .build())
       .hangup(hangup)
