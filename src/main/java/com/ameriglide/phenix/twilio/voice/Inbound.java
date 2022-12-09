@@ -174,7 +174,7 @@ public class Inbound extends TwiMLServlet {
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Optionals
-        .of(Locator.$1(Opportunity.withPreferredAgents(c)))
+        .of(Locator.$1(Opportunity.withPreferredAgents()))
         .map(Opportunity::getAssignedTo)
         .map(Agent::getSid)
         .map(JsonString::new)
