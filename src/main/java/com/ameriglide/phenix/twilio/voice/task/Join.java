@@ -68,8 +68,8 @@ public class Join extends TwiMLServlet {
 
       case "participant-join" -> {
         var particpant = Participant.fromRequest(request);
-        conference.agentSids().put(particpant.agent().id,leg.sid);
         if (particpant.isAgent()) {
+          conference.agentSids().put(particpant.agent().id,leg.sid);
           if (particpant.from==null) {
             log.debug(
               () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));

@@ -3,7 +3,6 @@ package com.ameriglide.phenix.twilio.voice;
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.twilio.twiml.VoiceResponse;
-import com.twilio.twiml.voice.Dial;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,17 +24,23 @@ public class Transfer extends TwiMLServlet {
     Exception {
     var agentId = request.getParameter("agent");
     var number = request.getParameter("number");
-    final Dial.Builder dial;
     if (isEmpty(agentId)) {
       if (isEmpty(number)) {
         throw new IllegalArgumentException("Must provide agent or number parameter");
       } else {
         var vCid = Locator.$1(VerifiedCallerId.isDefault);
-        dial = Status.watch(new Party(new PhoneNumber(number))).callerId(vCid.getPhoneNumber());
+        respond(response, new VoiceResponse.Builder()
+          .dial(Status.watch(new Party(new PhoneNumber(number))).callerId(vCid.getPhoneNumber()).build())
+          .hangup(hangup)
+          .build());
       }
     } else {
-      dial = Status.watch(new Party(Locator.$(new Agent(Integer.parseInt(agentId)))));
+      var agent = Locator.$(new Agent(Integer.parseInt(agentId)));
+      respond(response, new VoiceResponse.Builder()
+        .dial(Status.watch(new Party(agent)).build())
+        .redirect(toVoicemail(
+          "%s is not available. Please leave a message and your call will be returned as soon as possible"))
+        .build());
     }
-    respond(response, new VoiceResponse.Builder().dial(dial.build()).build());
   }
 }
