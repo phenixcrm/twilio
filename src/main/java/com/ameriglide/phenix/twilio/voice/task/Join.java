@@ -53,10 +53,11 @@ public class Join extends TwiMLServlet {
         if (particpant.isAgent()) {
           log.debug(
             () -> "agent %s left the conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
-          conference.agentSids().remove(leg.sid);
+          var agentLeg = conference.agentSids().remove(particpant.agent.id);
           if (conference.shouldHangup()) {
-            log.info(() -> "last agent left the conference %s, hanging up".formatted(params.reservation()));
+            log.info(() -> "last agent left the conference %s, hanging up %s and %s".formatted(params.reservation()));
             router.hangup(call.sid);
+            router.hangup(agentLeg);
           }
         } else {
           log.debug(

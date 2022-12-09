@@ -103,6 +103,7 @@ public class Task extends TwiMLServlet {
             .endConferenceOnExit(true)
             .build())
           .build())
+        .hangup(hangup)
         .build());
     }
   }
