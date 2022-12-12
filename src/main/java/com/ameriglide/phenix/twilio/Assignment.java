@@ -50,7 +50,8 @@ public class Assignment extends PhenixServlet {
     }
     var attributes = JsonMap.parse(request.getParameter("TaskAttributes"));
     var callSid = Optionals.of(attributes.get("call_sid")).orElse(task);
-    log.info(() -> "ASSIGN %s %s to %s".formatted(callSid, attributes.get("caller"), agent.getFullName()));
+    log.info(() -> "ASSIGN %s %s to %s, Reservation=%s".formatted(callSid, attributes.get("caller"),
+      agent.getFullName(),reservation));
     var call = Locator.$(new Call(callSid));
     update(call, "Assignment", copy -> {
       copy.setAgent(agent);
