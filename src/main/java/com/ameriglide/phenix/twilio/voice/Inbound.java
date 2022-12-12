@@ -2,7 +2,6 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
-import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
@@ -17,7 +16,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.Json;
 import net.inetalliance.types.json.JsonMap;
-import net.inetalliance.types.json.JsonString;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
@@ -171,6 +169,7 @@ public class Inbound extends TwiMLServlet {
       task.$("type", "sales");
       task.$("product", p.getAbbreviation());
     }
+    /*
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Optionals
@@ -180,6 +179,7 @@ public class Inbound extends TwiMLServlet {
         .map(JsonString::new)
         .orElse(JsonString.NULL));
     }
+     */
     log.debug(()->"Enqueing new task %s".formatted(Json.pretty(task)));
     builder
       .say(speak(q.getWelcomeMessage()))
