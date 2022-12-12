@@ -85,6 +85,7 @@ public class Join extends TwiMLServlet {
             } catch (ApiException e) {
               log.warn(() -> "got Twilio api error %d:%s when trying to accept %s for %s".formatted(e.getCode(),
                 e.getMessage(), params.reservation(), params.task()));
+              Assignment.clear(particpant.agent());
             }
 
           } else {
