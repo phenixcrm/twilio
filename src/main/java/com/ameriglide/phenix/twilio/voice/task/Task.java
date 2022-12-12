@@ -69,6 +69,10 @@ public class Task extends TwiMLServlet {
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
     var params = new Params(request);
+    var queue = call.getQueue();
+    if(queue == null) {
+      log.error(()->"new task's call doesn't have a queue [%s]".formatted(call.sid));
+    }
     if (Strings.isNotEmpty(params.task())) {
       log.debug(() -> "%s creating conference %s for %s (%s)".formatted(params.task(), params.reservation(),
         params.agent().getFullName(), params.connect()));
@@ -77,7 +81,7 @@ public class Task extends TwiMLServlet {
       });
       var qs = params.toNamedValues();
       respond(response, new VoiceResponse.Builder()
-        .say(speak(call.getQueue().getAnnouncement()))
+        .say(speak(queue.getAnnouncement()))
         .dial(new Dial.Builder()
           .answerOnBridge(true)
           .conference(Recorder
@@ -95,7 +99,7 @@ public class Task extends TwiMLServlet {
     } else {
       log.debug(() -> "adding agent %s to conference %s".formatted(params.agent().getFullName(), params.reservation()));
       respond(response, new VoiceResponse.Builder()
-        .say(speak(call.getQueue().getAnnouncement() + " transfer"))
+        .say(speak(queue.getAnnouncement() + " transfer"))
         .dial(new Dial.Builder()
           .answerOnBridge(true)
           .conference(new Conference.Builder(params.reservation())
