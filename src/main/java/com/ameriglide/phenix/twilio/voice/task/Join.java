@@ -77,7 +77,9 @@ public class Join extends TwiMLServlet {
               () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
             try {
               router.acceptReservation(params.task(), params.reservation());
-              log.debug(()->"agent %s accepted reservation %s for %s".formatted(params.reservation(),params.task()));
+              log.debug(()->"agent %s accepted reservation %s for %s".formatted(particpant.agent().getFullName(),
+                params.reservation(),
+                params.task()));
               router.join(params.connect(), params.reservation());
               Locator.update(leg, "Join", copy -> {
                 copy.setAgent(particpant.agent());
