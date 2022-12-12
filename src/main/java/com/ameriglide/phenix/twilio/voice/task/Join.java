@@ -77,15 +77,19 @@ public class Join extends TwiMLServlet {
               () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
             try {
               router.acceptReservation(params.task(), params.reservation());
+              log.debug(()->"agent %s accepted reservation %s for %s".formatted(params.reservation(),params.task()));
               router.join(params.connect(), params.reservation());
               Locator.update(leg, "Join", copy -> {
                 copy.setAgent(particpant.agent());
                 copy.setAnswered(LocalDateTime.now());
               });
             } catch (ApiException e) {
+              e.printStackTrace(System.out);
               log.warn(() -> "got Twilio api error %d:%s when trying to accept %s for %s".formatted(e.getCode(),
                 e.getMessage(), params.reservation(), params.task()));
               Assignment.clear(particpant.agent());
+            } catch (Throwable t) {
+              log.error(t);
             }
 
           } else {
