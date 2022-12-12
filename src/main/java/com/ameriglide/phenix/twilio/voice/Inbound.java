@@ -180,6 +180,7 @@ public class Inbound extends TwiMLServlet {
         .map(JsonString::new)
         .orElse(JsonString.NULL));
     }
+    log.debug(()->"Enqueing new task %s".formatted(Json.pretty(task)));
     builder
       .say(speak(q.getWelcomeMessage()))
       .enqueue(new Enqueue.Builder()
