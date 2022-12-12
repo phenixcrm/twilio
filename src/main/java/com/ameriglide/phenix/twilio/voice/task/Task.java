@@ -38,13 +38,21 @@ public class Task extends TwiMLServlet {
   protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
     var params = new Params(request);
+    var agent = Party.fromRequest(request,"Called").agent();
     switch (request.getParameter("CallStatus")) {
       case "ringing" -> Locator.update(leg, "Task", copy -> {
-        copy.setAgent(Party.fromRequest(request, "Called").agent());
+        copy.setAgent(agent);
       });
       case "busy" -> {
         try {
-          router.rejectReservation(params.task(), params.reservation(), leg.getAgent());
+          log.info(() -> "%s is busy, declining task %s for %s".formatted(agent.getFullName(),
+            params.task(),
+            call.getPhone()));
+          router.rejectReservation(params.task(), params.reservation(), agent);
+          Locator.update(leg, "Task", copy -> {
+            copy.setAgent(agent);
+            copy.setEnded(LocalDateTime.now());
+          });
         } catch (ApiException e) {
           log.error(e::getMessage);
           log.error(() -> "" + e.getCode());
@@ -52,13 +60,14 @@ public class Task extends TwiMLServlet {
         Assignment.clear(call.getAgent());
       }
       case "no-answer" -> {
-        log.info(() -> "%s declined the task %s for %s".formatted(params.agent().getFullName(), params.task(),
+        log.info(() -> "%s declined the task %s for %s".formatted(agent.getFullName(), params.task(),
           call.getPhone()));
+        router.rejectReservation(params.task(),params.reservation(),agent);
         Locator.update(leg, "Task", copy -> {
-          copy.setAgent(Party.fromRequest(request, "Called").agent());
+          copy.setAgent(agent);
           copy.setEnded(LocalDateTime.now());
         });
-        Assignment.clear(call.getAgent());
+        Assignment.clear(agent);
 
       }
     }
