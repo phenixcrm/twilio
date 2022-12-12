@@ -56,7 +56,6 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
       var open = new HashSet<String>();
       forEach(isActiveVoiceCall, c -> open.add(c.sid));
       shared.availability().values().stream().map(s -> s.call).filter(Strings::isNotEmpty).forEach(open::add);
-      var stuck = new HashSet<Integer>();
       var closedStates = Set.of(COMPLETED, BUSY, FAILED, NO_ANSWER, CANCELED);
       var closed = open.stream().filter(sid -> {
         var call = router.getCall(sid);
