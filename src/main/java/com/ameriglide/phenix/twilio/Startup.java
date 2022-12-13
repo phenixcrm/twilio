@@ -96,7 +96,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
   @Override
   public void contextInitialized(final ServletContextEvent sce) {
     super.contextInitialized(sce);
-    new SyncWorkerSkills(router).exec();
+    executor.execute(new SyncWorkerSkills(router));
     schedule();
 
   }
