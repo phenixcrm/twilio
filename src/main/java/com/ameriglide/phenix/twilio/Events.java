@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.PhenixServlet;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.twilio.type.PhoneNumber;
@@ -13,9 +14,7 @@ import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import static com.ameriglide.phenix.servlet.Startup.*;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
@@ -170,7 +169,21 @@ public class Events extends TwiMLServlet {
         switch (request.getParameter("EventType")) {
             case "task.canceled", "task.created","reservation.created" -> {
                 var task = JsonMap.parse(request.getParameter("TaskAttributes"));
-                return Stream.of("VoiceCall", "Lead").map(task::get).filter(Objects::nonNull).findFirst().orElse(null);
+                var voiceCall = task.get("VoiceCall");
+                if(Strings.isNotEmpty(voiceCall)) {
+                    return voiceCall;
+                }
+                var lead = task.get("Lead");
+                if(Strings.isNotEmpty(lead)) {
+                    var opp = Locator.$(new Opportunity(Integer.valueOf(lead)));
+                    if(opp != null) {
+                        var call = Locator.$1(Call.withOpportunity(opp));
+                        if(call != null) {
+                            return call.sid;
+                        }
+                    }
+                }
+                return null;
             }
             default -> {
                 return null;
