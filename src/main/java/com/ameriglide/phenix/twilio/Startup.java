@@ -7,7 +7,6 @@ import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.topics.HudTopic;
-import com.ameriglide.phenix.twilio.tasks.SyncWorkerSkills;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.rest.taskrouter.v1.workspace.Worker;
 import jakarta.servlet.ServletContextEvent;
@@ -96,7 +95,6 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
   @Override
   public void contextInitialized(final ServletContextEvent sce) {
     super.contextInitialized(sce);
-    executor.execute(new SyncWorkerSkills(router));
     schedule();
 
   }
