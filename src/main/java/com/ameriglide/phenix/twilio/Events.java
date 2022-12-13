@@ -78,7 +78,7 @@ public class Events extends TwiMLServlet {
                     case "workflow.entered" -> debugTaskEvent(task, attributes, request, () -> "entered workflow");
                     case "task.completed" -> debugTaskEvent(task, attributes, request, () -> "task completed");
                     case "task.canceled" -> {
-                        var reason = request.getParameter("reason");
+                        var reason = request.getParameter("Reason");
                         debugTaskEvent(task, attributes, request, () -> "cancelled (%s)".formatted(reason));
                         if (attributes.containsKey("VoiceCall")) {
                             Locator.update(call, "Events", copy -> {
