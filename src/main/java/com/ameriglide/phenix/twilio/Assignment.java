@@ -42,12 +42,6 @@ public class Assignment extends PhenixServlet {
     var reservation = request.getParameter("ReservationSid");
     var task = request.getParameter("TaskSid");
     var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
-    if (Locator.find(Call.isActiveVoiceCall, c -> agent.equals(c.getActiveAgent()))!=null) {
-      log.info(() -> "ASSIGN skipping %s because the agent is on a call".formatted(agent.getFullName()));
-      PhenixServlet.respond(response, new JsonMap().$("instruction", "reject"));
-      return;
-
-    }
     var attributes = JsonMap.parse(request.getParameter("TaskAttributes"));
     var callSid = Optionals.of(attributes.get("call_sid")).orElse(task);
     log.info(() -> "ASSIGN %s %s to %s, Reservation=%s".formatted(callSid, attributes.get("caller"),
