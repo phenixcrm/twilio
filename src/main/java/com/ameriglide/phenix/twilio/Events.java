@@ -3,7 +3,6 @@ package com.ameriglide.phenix.twilio;
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
-import com.ameriglide.phenix.servlet.PhenixServlet;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
@@ -129,7 +128,8 @@ public class Events extends TwiMLServlet {
                                     copy.setAssignedTo(agent);
                                 });
                             }
-                            PhenixServlet.respond(response, new JsonMap().$("instruction", "accept"));
+                            router.acceptReservation(task,reservation);
+                            router.completeTask(task);
                         }
                         Assignment.pop(agent, call.sid);
                         Assignment.notify(call);
