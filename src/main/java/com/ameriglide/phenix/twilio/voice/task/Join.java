@@ -116,7 +116,7 @@ public class Join extends TwiMLServlet {
         conferences.remove(params.reservation());
         log.debug(() -> "conference has ended %s".formatted(params.reservation()));
         router.completeTask(params.task());
-        var agentLeg = call.getActiveLeg();
+        var agentLeg = call.getLastLeg();
         log.debug(() -> "Ending agent leg %s".formatted(agentLeg.sid));
         Locator.update(agentLeg, "Join", copy -> {
           copy.setEnded(LocalDateTime.now());
