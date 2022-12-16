@@ -107,6 +107,9 @@ public class Task extends TwiMLServlet {
         .build());
     } else {
       log.debug(() -> "adding agent %s to conference %s".formatted(params.agent().getFullName(), params.reservation()));
+      Locator.update(leg,"Task",copy-> {
+        copy.setAgent((params.agent()));
+      });
       respond(response, new VoiceResponse.Builder()
         .say(speak(queue.getAnnouncement() + " transfer"))
         .dial(new Dial.Builder()
