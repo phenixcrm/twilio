@@ -53,12 +53,16 @@ public class Join extends TwiMLServlet {
         if (particpant.isAgent()) {
           log.debug(
             () -> "agent %s left the conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
+          Locator.update(leg, "Join", copy -> {
+            copy.setEnded(LocalDateTime.now());
+          });
           var agentLeg = conference.agentSids().remove(particpant.agent.id);
           if (conference.shouldHangup()) {
-            log.info(() -> "last agent left the conference %s, hanging up %s".formatted(params.reservation(),
-              call.sid));
+            log.info(
+              () -> "last agent left the conference %s, hanging up %s".formatted(params.reservation(), call.sid));
             router.hangup(agentLeg);
           }
+          Assignment.clear(particpant.agent());
         } else {
           log.debug(
             () -> "remote party %s left the conference %s for %s".formatted(call.getPhone(), params.reservation(),
@@ -70,16 +74,18 @@ public class Join extends TwiMLServlet {
       case "participant-join" -> {
         var particpant = Participant.fromRequest(request);
         if (particpant.isAgent()) {
-          conference.agentSids().put(particpant.agent().id,leg.sid);
+          conference.agentSids().put(particpant.agent().id, leg.sid);
           if (particpant.from==null) {
             log.debug(
               () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
             try {
               router.acceptReservation(params.task(), params.reservation());
-              log.debug(()->"agent %s accepted reservation %s for %s".formatted(particpant.agent().getFullName(),
-                params.reservation(),
-                params.task()));
+              log.debug(() -> "agent %s accepted reservation %s for %s".formatted(particpant.agent().getFullName(),
+                params.reservation(), params.task()));
               router.join(params.connect(), params.reservation());
+              Locator.update(call, "Join", copy -> {
+                copy.setAgent(particpant.agent());
+              });
               Locator.update(leg, "Join", copy -> {
                 copy.setAgent(particpant.agent());
                 copy.setAnswered(LocalDateTime.now());
@@ -94,9 +100,16 @@ public class Join extends TwiMLServlet {
             }
 
           } else {
-            log.debug(() -> "cold transfer %s -> %s to %s for %s".formatted(particpant.from.getFullName(),
+            log.debug(() -> "warm join %s -> %s to %s for %s".formatted(particpant.from.getFullName(),
               particpant.agent().getFullName(), params.reservation(), params.task()));
-            router.hangup(conference.agentSids.get(particpant.from.id));
+            Locator.update(call, "Join", copy -> {
+              copy.setAgent(particpant.agent());
+            });
+            Locator.update(leg, "Join", copy -> {
+              copy.setAnswered(LocalDateTime.now());
+              copy.setAgent(particpant.agent());
+            });
+            Assignment.pop(particpant.agent(), params.connect());
           }
         } else {
           log.debug(
@@ -117,9 +130,6 @@ public class Join extends TwiMLServlet {
         router.completeTask(params.task());
         var agentLeg = call.getLastLeg();
         log.debug(() -> "Ending agent leg %s".formatted(agentLeg.sid));
-        Locator.update(agentLeg, "Join", copy -> {
-          copy.setEnded(LocalDateTime.now());
-        });
         Locator.update(call, "Join", copy -> {
           copy.setResolution(Resolution.ANSWERED);
           copy.setTalkTime(
@@ -168,8 +178,7 @@ public class Join extends TwiMLServlet {
     conferences.clear();
   }
 
-  record ConferenceRoom(String reservation, String remoteSid, Map<Integer,String> agentSids,
-                        AtomicBoolean hasRemote) {
+  record ConferenceRoom(String reservation, String remoteSid, Map<Integer, String> agentSids, AtomicBoolean hasRemote) {
     ConferenceRoom(String reservation, String remoteSid) {
       this(reservation, remoteSid, new HashMap<>(), new AtomicBoolean(false));
 
@@ -199,7 +208,7 @@ public class Join extends TwiMLServlet {
       }
       var m = transfer.matcher(label);
       if (m.matches()) {
-        return new Participant(toAgent(m.group(2)), toAgent(m.group(1)));
+        return new Participant(toAgent(m.group(1)), toAgent(m.group(2)));
       }
       return new Participant(toAgent(label));
 
