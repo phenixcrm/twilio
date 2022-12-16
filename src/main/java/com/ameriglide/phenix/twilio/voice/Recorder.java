@@ -87,10 +87,16 @@ public class Recorder extends TwiMLServlet {
       case "completed" -> {
         var recording = request.getParameter("RecordingSid");
         if (isNotEmpty(recording)) {
+          var voicemail = "true".equals(request.getParameter("voicemail"));
           log.debug(
-            () -> "added recording for %s (%s sec)".formatted(call.sid, request.getParameter("RecordingDuration")));
+            () -> "added %s for %s (%s sec)".formatted(voicemail ? "voicemail":"recording",call.sid,
+              request.getParameter("RecordingDuration")));
           Locator.update(call, "Record", copy -> {
-            copy.setRecordingSid(recording);
+            if(voicemail) {
+              copy.setVoiceMailSid(recording);
+            } else {
+              copy.setRecordingSid(recording);
+            }
           });
         }
       }
@@ -112,7 +118,7 @@ public class Recorder extends TwiMLServlet {
   @Override
   public void init() throws ServletException {
     super.init();
-    var callback = Startup.router.getApi("/voice/record");
+    var callback = Startup.router.getApi("/voice/record",Map.of("voicemail",true));
     voicemail = new Builder()
       .recordingStatusCallbackMethod(GET)
       .recordingStatusCallback(callback)
