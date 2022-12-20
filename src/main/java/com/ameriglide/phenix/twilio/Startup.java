@@ -22,6 +22,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static com.ameriglide.phenix.common.Call.isActiveVoiceCall;
+import static com.ameriglide.phenix.types.WorkerState.OFFLINE;
 import static com.twilio.rest.api.v2010.account.Call.Status.*;
 import static java.util.stream.Collectors.toSet;
 import static net.inetalliance.potion.Locator.forEach;
@@ -47,7 +48,7 @@ public class Startup extends com.ameriglide.phenix.servlet.Startup {
         .getWorkers()
         .filter(Worker::getAvailable)
         .peek(worker -> log.warn(() -> "Setting %s to offline".formatted(worker.getFriendlyName())))
-        .forEach(worker -> router.setActivity(worker.getSid(), router.offline));
+        .forEach(worker -> router.setActivity(worker.getSid(), OFFLINE.activity()));
       schedule();
 
     }, secs, TimeUnit.SECONDS);

@@ -82,7 +82,7 @@ public class Recorder extends TwiMLServlet {
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, final Call call,
                      final Leg leg) throws Exception {
-    // audio recordfing
+    // audio recording
     switch (request.getParameter("RecordingStatus")) {
       case "completed" -> {
         var recording = request.getParameter("RecordingSid");

@@ -9,14 +9,18 @@ import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.CallDirection;
+import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.VoiceResponse;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 
+import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.THROW;
+import static com.ameriglide.phenix.types.WorkerState.AVAILABLE;
+import static com.ameriglide.phenix.types.WorkerState.BUSY;
 
 @WebServlet("/twilio/voice/complete")
 public class Complete extends TwiMLServlet {
@@ -41,6 +45,18 @@ public class Complete extends TwiMLServlet {
       call.setBlame(null);
     }
     call.setRecordingSid(request.getParameter("RecordingSid"));
+    var agent = call.getAgent();
+    var worker = router.getWorker(agent.getSid());
+    if (worker==null) {
+      log.warn(() -> "could not find worker for agent %d: %s sid ? %s".formatted(agent.id, agent.getFullName(),
+        agent.getSid()));
+    } else {
+      if (BUSY==WorkerState.from(worker)) {
+        log.debug(() -> "clearing busy from %s".formatted(agent.getFullName()));
+        router.setActivity(agent.getSid(), AVAILABLE.activity());
+
+      }
+    }
   }
 
   /**

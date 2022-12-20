@@ -29,6 +29,7 @@ import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static com.ameriglide.phenix.twilio.TaskRouter.toE164;
 import static com.ameriglide.phenix.types.CallDirection.*;
+import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
 @WebServlet("/twilio/voice/call")
@@ -76,6 +77,7 @@ public class Inbound extends TwiMLServlet {
                     var vCid = Locator.$1(VerifiedCallerId.isDefault);
                     copy.setContact(Locator.$1(Contact.withPhoneNumber(toE164(called.endpoint()))));
                     log.debug(() -> "Outbound %s -> %s".formatted(caller.agent().getFullName(), called));
+                    router.setActivity(caller.agent().getSid(),BUSY.activity());
                     twiml = new VoiceResponse.Builder()
                             .dial(Status
                                     .watch(called)
