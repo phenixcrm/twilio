@@ -3,12 +3,13 @@ package com.ameriglide.phenix.twilio.voice;
 import com.ameriglide.phenix.common.Agent;
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Leg;
+import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
-import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
+import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
@@ -50,6 +51,8 @@ public class OutboundDial extends TwiMLServlet {
       called = new Party(Locator.$(new Agent(Integer.parseInt(agent))));
     }
     // call the caller and then connect to the called party
+    log.debug(()->"Setting %s to busy".formatted((call.getAgent().getFullName())));
+    Startup.router.setActivity(call.getAgent().getSid(), WorkerState.BUSY.activity());
     var builder = new VoiceResponse.Builder();
     final boolean pop;
     if (called.isAgent()) {
