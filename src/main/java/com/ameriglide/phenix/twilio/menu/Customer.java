@@ -58,11 +58,14 @@ public class Customer extends Menu.Step {
     var builder = new VoiceResponse.Builder();
     var caller = Party.fromRequest(request, "Caller");
     switch (request.getParameter("Digits")) {
-      case "1", "3" ->
-        Inbound.enqueue(builder, caller, call, Locator.$(new WorkflowAssignment(CallType.SERVICE)).getQueue(),
+      case "1", "3" -> Locator.update(call, "Customer", copy -> {
+        Inbound.enqueue(builder, caller, copy, Locator.$(new WorkflowAssignment(CallType.SERVICE)).getQueue(),
           Source.PHONE);
-      case "2" -> Inbound.enqueue(builder, caller, call, Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(),
-        Source.PHONE);
+      });
+      case "2" -> Locator.update(call, "Customer", copy -> {
+        Inbound.enqueue(builder, caller, copy, Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(),
+          Source.PHONE);
+      });
       default -> {
         return new VoiceResponse.Builder().redirect(toVoicemail(badInput)).build();
       }
