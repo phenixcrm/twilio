@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 
 import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.*;
+import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static com.twilio.http.HttpMethod.POST;
 
 @WebServlet("/twilio/voice/join")
@@ -90,6 +91,11 @@ public class Join extends TwiMLServlet {
                 copy.setAgent(particpant.agent());
                 copy.setAnswered(LocalDateTime.now());
               });
+              if(conference.agentSids().size() > 1) {
+                Startup.router.setActivity(particpant.agent().getSid(), BUSY.activity());
+                Assignment.pop(particpant.agent(),call.sid);
+                Assignment.notify(call);
+              }
             } catch (ApiException e) {
               e.printStackTrace(System.out);
               log.warn(() -> "got Twilio api error %d:%s when trying to accept %s for %s".formatted(e.getCode(),
