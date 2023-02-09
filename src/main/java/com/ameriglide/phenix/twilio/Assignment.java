@@ -24,6 +24,7 @@ public class Assignment extends PhenixServlet {
   }
 
   public static void pop(Agent agent, String callSid) {
+    log.debug(()->"popping %s for %s".formatted(callSid,agent.getFullName()));
     topics
       .events()
       .publishAsync(new JsonMap().$("agent", agent.id).$("type", "pop").$("event", new JsonMap().$("callId", callSid)));
