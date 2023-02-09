@@ -20,9 +20,11 @@ import net.inetalliance.potion.Locator;
 import java.nio.charset.StandardCharsets;
 
 import static com.ameriglide.phenix.core.Strings.isEmpty;
+import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
+import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static java.net.URLDecoder.decode;
 
 @WebServlet("/twilio/voice/dial")
@@ -51,16 +53,23 @@ public class OutboundDial extends TwiMLServlet {
       called = new Party(Locator.$(new Agent(Integer.parseInt(agent))));
     }
     // call the caller and then connect to the called party
-    log.debug(()->"Setting %s to busy".formatted((call.getAgent().getFullName())));
-    Startup.router.setActivity(call.getAgent().getSid(), WorkerState.BUSY.activity());
+    log.debug(() -> "Setting %s to busy".formatted((call.getAgent().getFullName())));
+    router.setActivity(call.getAgent(), BUSY.activity());
     var builder = new VoiceResponse.Builder();
     final boolean pop;
     if (called.isAgent()) {
       pop = false;
       // internal call
-      log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
-        called.agent().getFullName()));
-      builder.say(speak("Connecting you to " + called.agent().getFullName())).dial(Status.watch(called).build());
+      var calledAgent = called.agent();
+      if (WorkerState.from(router.getWorker(calledAgent.getSid()))==BUSY) {
+        builder.redirect(
+          toVoicemail("%s is on the phone. Please leave a message.".formatted(calledAgent.getFullName())));
+      } else {
+        log.debug(() -> "connecting internal call %s -> %s".formatted(call.getAgent().getFullName(),
+          calledAgent.getFullName()));
+        router.setActivity(calledAgent, BUSY.activity());
+        builder.say(speak("Connecting you to " + calledAgent.getFullName())).dial(Status.watch(called).build());
+      }
     } else {
       pop = true;
       // outbound call

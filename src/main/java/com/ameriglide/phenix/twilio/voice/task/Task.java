@@ -6,7 +6,6 @@ import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
-import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.voice.Recorder;
 import com.twilio.exception.ApiException;
 import com.twilio.twiml.VoiceResponse;
@@ -57,7 +56,6 @@ public class Task extends TwiMLServlet {
           log.error(e::getMessage);
           log.error(() -> "" + e.getCode());
         }
-        Assignment.clear(call.getAgent());
       }
       case "no-answer" -> {
         log.info(() -> "%s declined the task %s for %s".formatted(agent.getFullName(), params.task(),
@@ -67,7 +65,6 @@ public class Task extends TwiMLServlet {
           copy.setAgent(agent);
           copy.setEnded(LocalDateTime.now());
         });
-        Assignment.clear(agent);
 
       }
     }

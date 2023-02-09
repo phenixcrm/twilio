@@ -6,6 +6,9 @@ import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.Startup;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
+import com.ameriglide.phenix.twilio.Events;
+import com.ameriglide.phenix.types.CallDirection;
+import com.ameriglide.phenix.types.Resolution;
 import com.twilio.twiml.voice.Conference;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.twiml.voice.Record.Builder;
@@ -21,6 +24,7 @@ import java.util.Map;
 import static com.ameriglide.phenix.core.Strings.isNotEmpty;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
+import static com.ameriglide.phenix.types.CallDirection.INTERNAL;
 import static com.twilio.http.HttpMethod.GET;
 import static com.twilio.twiml.voice.Record.RecordingEvent.ABSENT;
 import static com.twilio.twiml.voice.Record.RecordingEvent.COMPLETED;
@@ -86,22 +90,24 @@ public class Recorder extends TwiMLServlet {
     switch (request.getParameter("RecordingStatus")) {
       case "completed" -> {
         var recording = request.getParameter("RecordingSid");
-        if (isNotEmpty(recording)) {
-          var voicemail = "true".equals(request.getParameter("voicemail"));
-          log.debug(
-            () -> "added %s for %s (%s sec)".formatted(voicemail ? "voicemail":"recording",call.sid,
+        Locator.update(call, "Record", copy -> {
+          copy.setResolution(Resolution.VOICEMAIL);
+          if (call.getDirection()==CallDirection.OUTBOUND || call.getDirection()==INTERNAL) {
+            Events.restorePrebusy(call.getAgent());
+          }
+          if (isNotEmpty(recording)) {
+            var voicemail = "true".equals(request.getParameter("voicemail"));
+            log.debug(() -> "added %s for %s (%s sec)".formatted(voicemail ? "voicemail":"recording", call.sid,
               request.getParameter("RecordingDuration")));
-          Locator.update(call, "Record", copy -> {
-            if(voicemail) {
+            if (voicemail) {
               copy.setVoiceMailSid(recording);
             } else {
               copy.setRecordingSid(recording);
             }
-          });
-        }
+          }
+        });
       }
     }
-
   }
 
   @Override
@@ -118,7 +124,7 @@ public class Recorder extends TwiMLServlet {
   @Override
   public void init() throws ServletException {
     super.init();
-    var callback = Startup.router.getApi("/voice/record",Map.of("voicemail",true));
+    var callback = Startup.router.getApi("/voice/record", Map.of("voicemail", true));
     voicemail = new Builder()
       .recordingStatusCallbackMethod(GET)
       .recordingStatusCallback(callback)

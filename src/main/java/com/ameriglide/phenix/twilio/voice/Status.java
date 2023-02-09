@@ -6,7 +6,7 @@ import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
-import com.ameriglide.phenix.twilio.Assignment;
+import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.twiml.voice.Number;
@@ -112,7 +112,10 @@ public class Status extends TwiMLServlet {
               }
               callCopy.setDuration(SECONDS.between(callCopy.getCreated(), legCopy.getEnded()));
             });
-            Assignment.clear(call.getAgent());
+            Events.restorePrebusy(call.getAgent());
+            if(legCopy.getAgent() != null) {
+              Events.restorePrebusyIfPresent(legCopy.getAgent());
+            }
           }
           case "in-progress", "answered" -> {
             legCopy.setAnswered(now());
@@ -124,7 +127,7 @@ public class Status extends TwiMLServlet {
               callCopy.setDuration(SECONDS.between(callCopy.getCreated(), legCopy.getEnded()));
               callCopy.setResolution(DROPPED);
             });
-            Assignment.clear(call.getAgent());
+            Events.restorePrebusy(call.getAgent());
           }
           default -> log.info(() -> "%s is %s".formatted(call.sid, request.getParameter("CallStatus")));
         }

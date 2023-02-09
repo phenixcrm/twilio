@@ -5,8 +5,10 @@ import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
+import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.twilio.Startup;
 import com.ameriglide.phenix.twilio.menu.Menu;
+import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.TwiML;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Enqueue;
@@ -29,6 +31,7 @@ import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static com.ameriglide.phenix.twilio.TaskRouter.toE164;
 import static com.ameriglide.phenix.types.CallDirection.*;
+import static com.ameriglide.phenix.types.WorkerState.AVAILABLE;
 import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 
@@ -51,6 +54,7 @@ public class Inbound extends TwiMLServlet {
       final boolean pop;
       final TwiML twiml;
       if (caller.isAgent()) {
+        router.setActivity(caller.agent(), BUSY.activity());
         notify = true;
         copy.setAgent(caller.agent());
         if (called.isAgent()) {
@@ -58,15 +62,18 @@ public class Inbound extends TwiMLServlet {
           log.info(() -> "%s is a new internal call %s->%s".formatted(copy.sid, caller, called));
           copy.setDirection(INTERNAL);
           var calledAgent = called.agent();
-          if (Locator.find(Call.isActiveVoiceCall, c -> calledAgent.equals(c.getActiveAgent()))!=null) {
-            log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
+          var worker = router.getWorker(calledAgent.getSid());
+          var workerState = Events.knownWorker(calledAgent, worker);
+          if (workerState==AVAILABLE) {
+            router.setActivity(calledAgent, BUSY.activity());
+            twiml = new VoiceResponse.Builder()
+              .dial(Status.watch(called).answerOnBridge(true).timeout(15).build())
+              .build();
+          } else {
+            log.info(() -> "%s the dialed agent, %s is %s, sending to voicemail".formatted(copy.sid, workerState,
               calledAgent.getFullName()));
             twiml = new VoiceResponse.Builder()
               .redirect(toVoicemail("%s is on the phone. Please leave a message.".formatted(calledAgent.getFullName())))
-              .build();
-          } else {
-            twiml = new VoiceResponse.Builder()
-              .dial(Status.watch(called).answerOnBridge(true).timeout(15).build())
               .build();
           }
         } else {
@@ -76,7 +83,6 @@ public class Inbound extends TwiMLServlet {
           var vCid = Locator.$1(VerifiedCallerId.isDefault);
           copy.setContact(Locator.$1(Contact.withPhoneNumber(toE164(called.endpoint()))));
           log.debug(() -> "Outbound %s -> %s".formatted(caller.agent().getFullName(), called));
-          router.setActivity(caller.agent().getSid(), BUSY.activity());
           twiml = new VoiceResponse.Builder()
             .dial(Status.watch(called).callerId(vCid.getPhoneNumber()).number(toE164(called.endpoint())).build())
             .build();
@@ -103,8 +109,9 @@ public class Inbound extends TwiMLServlet {
           copy.setDirection(INBOUND);
           copy.setAgent(vCid.getDirect());
           copy.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
-          if (Locator.find(Call.isActiveVoiceCall, c -> vCid.getDirect().equals(c.getActiveAgent()))!=null) {
-            log.info(() -> "%s the dialed agent, %s is on the phone, sending to voicemail".formatted(copy.sid,
+          var workerState = WorkerState.from(router.getWorker(vCid.getDirect().getSid()));
+          if (workerState!=AVAILABLE) {
+            log.info(() -> "%s the dialed agent, %s is %s, sending to voicemail".formatted(copy.sid, workerState,
               vCid.getDirect().getFullName()));
             twiml = new VoiceResponse.Builder()
               .redirect(toVoicemail(

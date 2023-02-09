@@ -5,6 +5,7 @@ import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.WorkerState;
+import com.twilio.rest.taskrouter.v1.workspace.Worker;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,9 @@ import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import static com.ameriglide.phenix.servlet.Startup.*;
@@ -22,6 +26,7 @@ import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.OPTIONAL;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static com.ameriglide.phenix.types.WorkerState.AVAILABLE;
+import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
 import static net.inetalliance.potion.Locator.update;
 
@@ -32,6 +37,34 @@ public class Events extends TwiMLServlet {
   public Events() {
     super(method -> new Config(OPTIONAL, IGNORE));
   }
+
+  private static Map<Integer,WorkerState> prebusy = new ConcurrentHashMap<>();
+
+  public static void restorePrebusy(final Agent agent) {
+    var old = prebusy.get(agent.id);
+    if(old == null) {
+      log.trace(()->"pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(),AVAILABLE));
+      router.setActivity(agent, AVAILABLE.activity());
+    } else {
+      log.trace(()->"restoring pre-busy state for %s (%s)".formatted(agent.getFullName(),old));
+      router.setActivity(agent, old.activity());
+    }
+  }
+
+  public static void restorePrebusyIfPresent(final Agent agent) {
+    if(prebusy.containsKey(agent.id)) {
+      restorePrebusy(agent);
+    }
+  }
+
+  public static WorkerState knownWorker(final Agent agent, final Worker worker) {
+    var workerState = WorkerState.from(worker);
+    if(workerState != BUSY) {
+      prebusy.put(agent.id,workerState);
+    }
+    return workerState;
+  }
+
 
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
@@ -46,21 +79,18 @@ public class Events extends TwiMLServlet {
             var to = WorkerState.from(request.getParameter("WorkerActivitySid"));
             var workerSid = request.getParameter("WorkerSid");
             var agent = Locator.$1(Agent.withSid(workerSid));
+            if(to == BUSY) {
+              prebusy.put(agent.id,from);
+            }
             log.debug(() -> "%s %s->%s".formatted(agent.getFullName(), from, to));
-            var availableNow = to==AVAILABLE;
             var status = shared.availability().get(agent.id);
             if (status==null) {
-              shared.availability().put(agent.id, new AgentStatus(agent, availableNow));
-            }
-            if (status!=null && status.available!=availableNow) {
-              shared.availability().put(agent.id, status.toggleAvailability());
-              topics
-                .events()
-                .publishAsync(new JsonMap()
-                  .$("type", "status")
-                  .$("agent", agent.id)
-                  .$("event", new JsonMap().$("available", availableNow)));
-              topics.hud().publishAsync(PRODUCE);
+              shared.availability().put(agent.id, new AgentStatus(agent,to));
+            } else if (!Objects.equals(from,to)) {
+                shared.availability().put(agent.id, status.withWorkerState(to));
+                topics.events().publishAsync(new JsonMap().$("type", "status").$("agent", agent.id).$("event",
+                  new JsonMap().$("workerState", to)));
+                topics.hud().publishAsync(PRODUCE);
             }
 
           }
@@ -88,14 +118,6 @@ public class Events extends TwiMLServlet {
                 router.sendToVoicemail(call.sid, "Our staff are presently unavailable. Please leave a message "
                   + "and we will return your call as soon as possible");
               }
-              shared
-                .availability()
-                .values()
-                .stream()
-                .filter(s -> call.sid.equals(s.call))
-                .map(s -> s.id)
-                .map(id -> Locator.$(new Agent(id)))
-                .forEach(Assignment::clear);
             } else if (attributes.containsKey("Lead")) {
               Locator.update(call, "Events", copy -> {
                 copy.setResolution(DROPPED);

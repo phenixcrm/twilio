@@ -6,6 +6,7 @@ import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
+import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.twilio.Startup;
 import com.ameriglide.phenix.types.Resolution;
 import com.twilio.exception.ApiException;
@@ -52,6 +53,7 @@ public class Join extends TwiMLServlet {
       case "participant-leave" -> {
         var particpant = Participant.fromRequest(request);
         if (particpant.isAgent()) {
+          Events.restorePrebusy(particpant.agent);
           log.debug(
             () -> "agent %s left the conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
           Locator.update(leg, "Join", copy -> {
@@ -63,7 +65,6 @@ public class Join extends TwiMLServlet {
               () -> "last agent left the conference %s, hanging up %s".formatted(params.reservation(), call.sid));
             router.hangup(agentLeg);
           }
-          Assignment.clear(particpant.agent());
         } else {
           log.debug(
             () -> "remote party %s left the conference %s for %s".formatted(call.getPhone(), params.reservation(),
@@ -92,7 +93,7 @@ public class Join extends TwiMLServlet {
                 copy.setAnswered(LocalDateTime.now());
               });
               if(conference.agentSids().size() > 1) {
-                Startup.router.setActivity(particpant.agent().getSid(), BUSY.activity());
+                Startup.router.setActivity(particpant.agent(), BUSY.activity());
                 Assignment.pop(particpant.agent(),call.sid);
                 Assignment.notify(call);
               }
@@ -100,7 +101,6 @@ public class Join extends TwiMLServlet {
               e.printStackTrace(System.out);
               log.warn(() -> "got Twilio api error %d:%s when trying to accept %s for %s".formatted(e.getCode(),
                 e.getMessage(), params.reservation(), params.task()));
-              Assignment.clear(particpant.agent());
             } catch (Throwable t) {
               log.error(t);
             }
@@ -136,6 +136,7 @@ public class Join extends TwiMLServlet {
         router.completeTask(params.task());
         var agentLeg = call.getLastLeg();
         log.debug(() -> "Ending agent leg %s".formatted(agentLeg.sid));
+        Events.restorePrebusyIfPresent(agentLeg.getAgent());
         Locator.update(call, "Join", copy -> {
           copy.setResolution(Resolution.ANSWERED);
           copy.setTalkTime(
@@ -143,7 +144,6 @@ public class Join extends TwiMLServlet {
           copy.setDuration(
             Stream.of(copy.getDuration(), agentLeg.getDuration()).filter(Objects::nonNull).reduce(0L, Long::sum));
         });
-        Assignment.clear(agentLeg.getAgent());
       }
     }
 
