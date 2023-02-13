@@ -155,11 +155,19 @@ public class Events extends TwiMLServlet {
             Assignment.pop(agent, call.sid);
             Assignment.notify(call);
           }
-          case "reservation.accepted" -> debugTaskEvent(task, attributes, request,
-            () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
-              request.getParameter("ResourceSid")));
+          case "reservation.accepted" -> {
+            var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
+            router.setActivity(agent,BUSY.activity());
+            debugTaskEvent(task, attributes, request,
+              () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
+                request.getParameter("ResourceSid")));
+          }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
-          case "reservation.completed" -> debugTaskEvent(task, attributes, request, () -> "reservation completed");
+          case "reservation.completed" -> {
+            var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
+            Events.restorePrebusyIfPresent(agent);
+            debugTaskEvent(task, attributes, request, () -> "reservation completed");
+          }
           default -> debugTaskEvent(task, attributes, request, () -> request.getParameter("EventDescription"));
 
         }

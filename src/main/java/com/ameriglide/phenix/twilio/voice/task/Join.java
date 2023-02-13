@@ -93,7 +93,6 @@ public class Join extends TwiMLServlet {
                 copy.setAnswered(LocalDateTime.now());
               });
               if(conference.agentSids().size() > 1) {
-                Startup.router.setActivity(particpant.agent(), BUSY.activity());
                 Assignment.pop(particpant.agent(),call.sid);
                 Assignment.notify(call);
               }
@@ -108,6 +107,7 @@ public class Join extends TwiMLServlet {
           } else {
             log.debug(() -> "warm join %s -> %s to %s for %s".formatted(particpant.from.getFullName(),
               particpant.agent().getFullName(), params.reservation(), params.task()));
+            router.setActivity(particpant.agent(),BUSY.activity());
             Locator.update(call, "Join", copy -> {
               copy.setAgent(particpant.agent());
             });
@@ -116,6 +116,7 @@ public class Join extends TwiMLServlet {
               copy.setAgent(particpant.agent());
             });
             Assignment.pop(particpant.agent(), params.connect());
+            Assignment.notify(call);
           }
         } else {
           log.debug(
