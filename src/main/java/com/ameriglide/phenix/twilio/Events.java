@@ -38,7 +38,7 @@ public class Events extends TwiMLServlet {
     super(method -> new Config(OPTIONAL, IGNORE));
   }
 
-  private static Map<Integer,WorkerState> prebusy = new ConcurrentHashMap<>();
+  private static final Map<Integer,WorkerState> prebusy = new ConcurrentHashMap<>();
 
   public static void restorePrebusy(final Agent agent) {
     var old = prebusy.get(agent.id);
