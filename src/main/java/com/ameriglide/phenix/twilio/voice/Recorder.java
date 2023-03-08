@@ -8,7 +8,6 @@ import com.ameriglide.phenix.servlet.Startup;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.types.CallDirection;
-import com.ameriglide.phenix.types.Resolution;
 import com.twilio.twiml.voice.Conference;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.twiml.voice.Record.Builder;
@@ -91,7 +90,6 @@ public class Recorder extends TwiMLServlet {
       case "completed" -> {
         var recording = request.getParameter("RecordingSid");
         Locator.update(call, "Record", copy -> {
-          copy.setResolution(Resolution.VOICEMAIL);
           if (call.getDirection()==CallDirection.OUTBOUND || call.getDirection()==INTERNAL) {
             Events.restorePrebusy(call.getAgent());
           }
