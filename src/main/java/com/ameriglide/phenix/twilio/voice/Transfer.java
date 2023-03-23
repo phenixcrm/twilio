@@ -2,6 +2,9 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
+import com.ameriglide.phenix.servlet.exception.NotFoundException;
+import com.ameriglide.phenix.twilio.Startup;
+import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
@@ -36,11 +39,27 @@ public class Transfer extends TwiMLServlet {
       }
     } else {
       var agent = Locator.$(new Agent(Integer.parseInt(agentId)));
-      respond(response, new VoiceResponse.Builder()
-        .dial(Status.watch(new Party(agent)).build())
-        .redirect(toVoicemail(
-          "%s is not available. Please leave a message and your call will be returned as soon as possible"))
-        .build());
+      if (agent==null) {
+        throw new NotFoundException("could not find agent with id [%s]".formatted(agentId));
+      }
+      var worker = Startup.router.getWorker(agent.getSid());
+      if (worker==null) {
+        throw new NotFoundException("could not find worker for agent [%d] with sid [%s]".formatted(agent.id, agentId));
+      }
+
+      if (WorkerState.from(worker) == WorkerState.AVAILABLE) {
+        respond(response, new VoiceResponse.Builder()
+          .dial(Status.watch(new Party(agent)).build())
+          .redirect(
+            toVoicemail("%s is not available. Please leave a message and your call will be returned as soon as possible"))
+          .build());
+      } else {
+        respond(response, new VoiceResponse.Builder()
+          .redirect(
+            toVoicemail("%s is not available. Please leave a message and your call will be returned as soon as possible"))
+          .build());
+
+      }
     }
   }
 }
