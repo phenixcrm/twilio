@@ -33,38 +33,19 @@ import static net.inetalliance.potion.Locator.update;
 @WebServlet("/twilio/events")
 public class Events extends TwiMLServlet {
   private static final Log log = new Log();
+  private static final Map<Integer, WorkerState> prebusy = new ConcurrentHashMap<>();
 
   public Events() {
     super(method -> new Config(OPTIONAL, IGNORE));
   }
 
-  private static final Map<Integer,WorkerState> prebusy = new ConcurrentHashMap<>();
-
-  public static void restorePrebusy(final Agent agent) {
-    var old = prebusy.get(agent.id);
-    if(old == null) {
-      log.trace(()->"pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(),AVAILABLE));
-      router.setActivity(agent, AVAILABLE.activity());
-    } else {
-      log.trace(()->"restoring pre-busy state for %s (%s)".formatted(agent.getFullName(),old));
-      router.setActivity(agent, old.activity());
-    }
-  }
-
-  public static void restorePrebusyIfPresent(final Agent agent) {
-    if(prebusy.containsKey(agent.id)) {
-      restorePrebusy(agent);
-    }
-  }
-
   public static WorkerState knownWorker(final Agent agent, final Worker worker) {
     var workerState = WorkerState.from(worker);
-    if(workerState != BUSY) {
-      prebusy.put(agent.id,workerState);
+    if (workerState!=BUSY) {
+      prebusy.put(agent.id, workerState);
     }
     return workerState;
   }
-
 
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
@@ -79,18 +60,22 @@ public class Events extends TwiMLServlet {
             var to = WorkerState.from(request.getParameter("WorkerActivitySid"));
             var workerSid = request.getParameter("WorkerSid");
             var agent = Locator.$1(Agent.withSid(workerSid));
-            if(to == BUSY) {
-              prebusy.put(agent.id,from);
+            if (to==BUSY) {
+              prebusy.put(agent.id, from);
             }
             log.debug(() -> "%s %s->%s".formatted(agent.getFullName(), from, to));
             var status = shared.availability().get(agent.id);
             if (status==null) {
-              shared.availability().put(agent.id, new AgentStatus(agent,to));
-            } else if (!Objects.equals(from,to)) {
-                shared.availability().put(agent.id, status.withWorkerState(to));
-                topics.events().publishAsync(new JsonMap().$("type", "status").$("agent", agent.id).$("event",
-                  new JsonMap().$("workerState", to)));
-                topics.hud().publishAsync(PRODUCE);
+              shared.availability().put(agent.id, new AgentStatus(agent, to));
+            } else if (!Objects.equals(from, to)) {
+              shared.availability().put(agent.id, status.withWorkerState(to));
+              topics
+                .events()
+                .publishAsync(new JsonMap()
+                  .$("type", "status")
+                  .$("agent", agent.id)
+                  .$("event", new JsonMap().$("workerState", to)));
+              topics.hud().publishAsync(PRODUCE);
             }
 
           }
@@ -149,6 +134,9 @@ public class Events extends TwiMLServlet {
                   copy.setAssignedTo(agent);
                 });
               }
+
+              debugTaskEvent(task, attributes, request,
+                () -> "%s accepting reservation %s".formatted(agent.getFullName(), reservation));
               router.acceptReservation(task, reservation);
               router.completeTask(task);
             }
@@ -157,7 +145,7 @@ public class Events extends TwiMLServlet {
           }
           case "reservation.accepted" -> {
             var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
-            router.setActivity(agent,BUSY.activity());
+            router.setActivity(agent, BUSY.activity());
             debugTaskEvent(task, attributes, request,
               () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
                 request.getParameter("ResourceSid")));
@@ -182,6 +170,23 @@ public class Events extends TwiMLServlet {
   void debugTaskEvent(String task, JsonMap attributes, HttpServletRequest request, Supplier<String> msg) {
     log.debug(() -> "Task %s [from:%s,age:%s,status:%s] -> %s".formatted(task, attributes.get("from"),
       request.getParameter("TaskAge"), request.getParameter("TaskAssignmentStatus"), msg.get()));
+  }
+
+  public static void restorePrebusyIfPresent(final Agent agent) {
+    if (prebusy.containsKey(agent.id)) {
+      restorePrebusy(agent);
+    }
+  }
+
+  public static void restorePrebusy(final Agent agent) {
+    var old = prebusy.get(agent.id);
+    if (old==null) {
+      log.trace(() -> "pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(), AVAILABLE));
+      router.setActivity(agent, AVAILABLE.activity());
+    } else {
+      log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
+      router.setActivity(agent, old.activity());
+    }
   }
 
   @Override
