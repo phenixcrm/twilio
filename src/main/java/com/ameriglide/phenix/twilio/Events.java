@@ -126,6 +126,7 @@ public class Events extends TwiMLServlet {
             if (attributes.containsKey("VoiceCall")) {
               router.voiceTask(task, reservation, new PhoneNumber(attributes.get("caller")), agent, call.sid);
             } else {
+              router.acceptReservation(task, reservation);
               var opp = attributes.containsKey("Lead") ? Locator.$(
                 new Opportunity(Integer.valueOf(attributes.get("Lead")))):call.getOpportunity();
               if (opp==null) {
@@ -136,7 +137,6 @@ public class Events extends TwiMLServlet {
                 });
               }
               log.debug(()->"%s accepted %s for %s".formatted(agent.getFullName(),reservation,task));
-              router.acceptReservation(task, reservation);
               router.completeTask(task);
             }
             Assignment.pop(agent, call.sid);
