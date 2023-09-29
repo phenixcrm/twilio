@@ -50,6 +50,7 @@ public class Events extends TwiMLServlet {
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
+    response.sendError(SC_NO_CONTENT);
     var eventType = request.getParameter("EventType");
     var resourceType = request.getParameter("ResourceType");
     switch (resourceType) {
@@ -134,9 +135,7 @@ public class Events extends TwiMLServlet {
                   copy.setAssignedTo(agent);
                 });
               }
-
-              debugTaskEvent(task, attributes, request,
-                () -> "%s accepting reservation %s".formatted(agent.getFullName(), reservation));
+              log.debug(()->"%s accepted %s for %s".formatted(agent.getFullName(),reservation,task));
               router.acceptReservation(task, reservation);
               router.completeTask(task);
             }
@@ -163,7 +162,6 @@ public class Events extends TwiMLServlet {
       default -> log.debug(() -> "unhandled event resource=%s/%s type=%s description=%s".formatted(resourceType,
         request.getParameter("ResourceSid"), eventType, request.getParameter("EventDescription")));
     }
-    response.sendError(SC_NO_CONTENT);
 
   }
 
