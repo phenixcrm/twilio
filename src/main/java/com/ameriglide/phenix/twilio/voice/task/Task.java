@@ -47,7 +47,7 @@ public class Task extends TwiMLServlet {
           log.info(() -> "%s is busy, declining task %s for %s".formatted(agent.getFullName(),
             params.task(),
             call.getPhone()));
-          router.rejectReservation(params.task(), params.reservation(), agent);
+          router.rejectReservation(params.task(), params.reservation());
           Locator.update(leg, "Task", copy -> {
             copy.setAgent(agent);
             copy.setEnded(LocalDateTime.now());
@@ -60,7 +60,7 @@ public class Task extends TwiMLServlet {
       case "no-answer" -> {
         log.info(() -> "%s declined the task %s for %s".formatted(agent.getFullName(), params.task(),
           call.getPhone()));
-        router.rejectReservation(params.task(),params.reservation(),agent);
+        router.rejectReservation(params.task(),params.reservation());
         Locator.update(leg, "Task", copy -> {
           copy.setAgent(agent);
           copy.setEnded(LocalDateTime.now());
