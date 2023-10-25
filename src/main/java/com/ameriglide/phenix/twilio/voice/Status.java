@@ -8,6 +8,7 @@ import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.types.Resolution;
+import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.voice.Dial;
 import com.twilio.twiml.voice.Number;
 import com.twilio.twiml.voice.Sip;
@@ -118,6 +119,7 @@ public class Status extends TwiMLServlet {
           case "in-progress", "answered" -> {
             legCopy.setAnswered(now());
             log.info(() -> "%s was answered".formatted(call.sid));
+            router.setActivity(legCopy.getAgent(), WorkerState.BUSY.activity());
           }
           case "no-answer", "busy", "failed" -> {
             legCopy.setEnded(now());
