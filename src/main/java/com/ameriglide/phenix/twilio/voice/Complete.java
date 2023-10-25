@@ -75,7 +75,8 @@ public class Complete extends TwiMLServlet {
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
     var called = Party.fromRequest(request, "To");
-    switch (request.getParameter("DialCallStatus")) {
+    var status = request.getParameter("DialCallStatus");
+    switch (status) {
       case "completed" -> {
         if (!"completed".equals(request.getParameter("CallStatus"))) {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
@@ -93,11 +94,30 @@ public class Complete extends TwiMLServlet {
               .build());
 
           } else {
-            log.debug(() -> "Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
-              agent.getFullName()));
-            respond(response, new VoiceResponse.Builder()
-              .redirect(toVoicemail("%s is not available. Please leave a message".formatted(agent.getFullName())))
-              .build());
+            if ("outbound-api".equals(request.getParameter("Direction"))) {
+              final String msg;
+              var code = request.getParameter("ErrorCode");
+              if(Strings.isNotEmpty(code)) {
+                msg = switch (request.getParameter("ErrorCode")) {
+                  case "13214" -> "Invalid Caller ID, please contact your phone system administrator";
+                  default -> "An unknown error occured while dialing this number";
+                };
+              } else {
+                msg = switch(status) {
+                  case "busy" -> "The number you dialed is busy";
+                  case "failed" -> "The number you dialed could not be reached";
+                  default -> "The number you dialed is busy or could not be reached";
+                };
+              }
+              respond(response, new VoiceResponse.Builder().say(speak(msg)).pause(pause(2)).hangup(hangup).build());
+
+            } else {
+              log.debug(() -> "Redirecting %s to the voicemail of %s".formatted(request.getParameter("CallSid"),
+                agent.getFullName()));
+              respond(response, new VoiceResponse.Builder()
+                .redirect(toVoicemail("%s is not available. Please leave a message".formatted(agent.getFullName())))
+                .build());
+            }
           }
         } else if (call.getDirection()!=CallDirection.OUTBOUND) {
           var agent = call.getDialingAgent();

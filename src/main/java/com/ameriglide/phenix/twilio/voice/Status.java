@@ -78,9 +78,7 @@ public class Status extends TwiMLServlet {
       // we have an update on a leg
       Locator.update(leg, "Status", legCopy -> {
         switch (call.getDirection()) {
-          case QUEUE -> legCopy.setAgent(Party.fromRequest(request, "To").agent());
-          case INBOUND -> {
-          }
+          case QUEUE,INBOUND -> legCopy.setAgent(Party.fromRequest(request, "To").agent());
           case OUTBOUND -> {
             if ("outbound-dial".equals(request.getParameter("Direction"))) {
               var called = Party.fromRequest(request, "To");
