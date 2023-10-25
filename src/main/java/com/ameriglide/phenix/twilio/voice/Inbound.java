@@ -111,14 +111,14 @@ public class Inbound extends TwiMLServlet {
           copy.setContact(Locator.$1(Contact.withPhoneNumber(caller.endpoint())));
           var workerState = WorkerState.from(router.getWorker(vCid.getDirect().getSid()));
           if (workerState!=AVAILABLE) {
-            log.info(() -> "%s the dialed agent, %s is %s, sending to voicemail".formatted(copy.sid, workerState,
-              vCid.getDirect().getFullName()));
+            log.info(() -> "%s the dialed agent, %s is %s, sending to voicemail".formatted(copy.sid,
+              vCid.getDirect().getFullName(), workerState));
             twiml = new VoiceResponse.Builder()
               .redirect(toVoicemail(
                 ("%s is %s. Please leave a message and your call will be returned as soon as " + "possible").formatted(
                   vCid.getDirect().getFullName(), switch (workerState) {
-                    case BUSY -> "on the phone";
-                    case UNAVAILABLE -> "unavailable";
+                    case BUSY, WRAPPING -> "on the phone";
+                    case OFFLINE, UNAVAILABLE -> "unavailable";
                     default -> throw new IllegalStateException();
                   })))
               .build();
@@ -189,9 +189,7 @@ public class Inbound extends TwiMLServlet {
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Locator
-        .$$(Opportunity.withContact(c)
-          .and(Opportunity.isDead.negate())
-          .orderBy("created", DESCENDING).limit(5))
+        .$$(Opportunity.withContact(c).and(Opportunity.isDead.negate()).orderBy("created", DESCENDING).limit(5))
         .stream()
         .map(Opportunity::getAssignedTo)
         .filter(Agent::isActive)
