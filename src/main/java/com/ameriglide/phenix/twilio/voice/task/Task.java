@@ -113,7 +113,7 @@ public class Task extends TwiMLServlet {
           .answerOnBridge(true)
           .conference(new Conference.Builder(params.reservation())
             .participantLabel(params.label())
-            .endConferenceOnExit(true)
+            .endConferenceOnExit(false)
             .build())
           .build())
         .hangup(hangup)
