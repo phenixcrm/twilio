@@ -17,7 +17,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
-import net.inetalliance.potion.info.UniqueKeyError;
+import net.inetalliance.potion.info.PersistenceError;
 
 import java.nio.charset.StandardCharsets;
 
@@ -56,7 +56,7 @@ public class OutboundDial extends TwiMLServlet {
         Locator.update(call, "OutboundDial", copy -> {
           copy.sid = callSid;
         });
-      } catch (UniqueKeyError e) {
+      } catch (PersistenceError e) {
         Locator.delete("OutboundDial", new Call(callSid));
         Locator.update(call, "OutboundDial", copy -> {
           copy.sid = callSid;
