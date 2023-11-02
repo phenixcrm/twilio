@@ -17,6 +17,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
+import net.inetalliance.potion.info.UniqueKeyError;
 
 import java.nio.charset.StandardCharsets;
 
@@ -51,9 +52,16 @@ public class OutboundDial extends TwiMLServlet {
     var callSid = request.getParameter("CallSid");
     if(call.sid.startsWith("ph") && !callSid.equals(call.sid)) {
       log.debug(()->"Attaching %s to %s".formatted(call.sid,callSid));
-      Locator.update(call,"OutboundDial", copy -> {
-        copy.sid = callSid;
-      });
+      try {
+        Locator.update(call, "OutboundDial", copy -> {
+          copy.sid = callSid;
+        });
+      } catch (UniqueKeyError e) {
+        Locator.delete("OutboundDial", new Call(callSid));
+        Locator.update(call, "OutboundDial", copy -> {
+          copy.sid = callSid;
+        });
+      }
     }
     var agent = request.getParameter("agent");
     var number = Optionals
