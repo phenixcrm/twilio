@@ -6,6 +6,7 @@ import com.ameriglide.phenix.common.Leg;
 import com.ameriglide.phenix.common.Party;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
+import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
@@ -36,8 +37,24 @@ public class OutboundDial extends TwiMLServlet {
   }
 
   @Override
+  protected String getCallSid(final HttpServletRequest request) {
+    var callSid = request.getParameter("call");
+    if(Strings.isEmpty(callSid)) {
+      return super.getCallSid(request);
+    }
+    return callSid;
+  }
+
+  @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
+    var callSid = request.getParameter("CallSid");
+    if(call.sid.startsWith("ph") && !callSid.equals(call.sid)) {
+      log.debug(()->"Attaching %s to %s".formatted(call.sid,callSid));
+      Locator.update(call,"OutboundDial", copy -> {
+        copy.sid = callSid;
+      });
+    }
     var agent = request.getParameter("agent");
     var number = Optionals
       .of(request.getParameter("number"))
