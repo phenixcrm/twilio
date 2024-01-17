@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.WorkerState;
@@ -13,7 +14,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.types.json.JsonMap;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
@@ -45,6 +48,7 @@ public class Events extends TwiMLServlet {
       prebusy.put(agent.id, workerState);
     }
     return workerState;
+
   }
 
   @Override
@@ -61,6 +65,18 @@ public class Events extends TwiMLServlet {
             var to = WorkerState.from(request.getParameter("WorkerActivitySid"));
             var workerSid = request.getParameter("WorkerSid");
             var agent = Locator.$1(Agent.withSid(workerSid));
+            try {
+
+              Locator.create("Events",
+                new ActivityChange(request.getParameter("Sid"), utcSecondsToDateTime(request.getParameter("Timestamp")),
+                  from, Optionals
+                  .of(request.getParameter("WorkerTimeInPreviousActivity"))
+                  .filter(Strings::isNotEmpty)
+                  .map(Long::parseLong)
+                  .orElse(null), to, agent));
+            } catch (Throwable t) {
+              log.error(t);
+            }
             if (to==BUSY) {
               prebusy.put(agent.id, from);
             }
@@ -136,7 +152,7 @@ public class Events extends TwiMLServlet {
                   copy.setAssignedTo(agent);
                 });
               }
-              log.debug(()->"%s accepted %s for %s".formatted(agent.getFullName(),reservation,task));
+              log.debug(() -> "%s accepted %s for %s".formatted(agent.getFullName(), reservation, task));
               router.completeTask(task);
             }
             Assignment.pop(agent, call.sid);
@@ -163,6 +179,14 @@ public class Events extends TwiMLServlet {
         request.getParameter("ResourceSid"), eventType, request.getParameter("EventDescription")));
     }
 
+  }
+
+  private LocalDateTime utcSecondsToDateTime(String field) {
+    if (Strings.isEmpty(field)) {
+      return null;
+    }
+    var utcSecs = Long.parseLong(field);
+    return Instant.ofEpochSecond(utcSecs).atZone(ZoneId.systemDefault()).toLocalDateTime();
   }
 
   void debugTaskEvent(String task, JsonMap attributes, HttpServletRequest request, Supplier<String> msg) {
