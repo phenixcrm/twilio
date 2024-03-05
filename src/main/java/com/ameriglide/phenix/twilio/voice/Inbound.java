@@ -91,6 +91,7 @@ public class Inbound extends TwiMLServlet {
         // INBOUND or IVR/QUEUE copy
         log.info(() -> "%s is a new inbound call %s->%s".formatted(copy.sid, caller, called));
         var vCid = Locator.$1(VerifiedCallerId.withPhoneNumber(called.endpoint()));
+        copy.setDialedNumber(vCid);
         if (vCid==null || vCid.isIvr()) {
           pop = false; // nobody to pop the copy to yet, in IVR
           notify = false;
