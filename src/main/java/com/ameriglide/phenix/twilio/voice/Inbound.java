@@ -12,17 +12,22 @@ import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.TwiML;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Enqueue;
+import com.twilio.twiml.voice.Reject;
 import com.twilio.twiml.voice.Task;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
+import net.inetalliance.potion.query.Query;
 import net.inetalliance.types.json.Json;
 import net.inetalliance.types.json.JsonMap;
 
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
 import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
@@ -39,9 +44,26 @@ import static net.inetalliance.sql.OrderBy.Direction.DESCENDING;
 public class Inbound extends TwiMLServlet {
 
   private static final Log log = new Log();
+  private static final Set<String> blockedNumbers = new HashSet<>();
 
   public Inbound() {
     super(method -> new Config(CREATE, IGNORE));
+  }
+
+  @Override
+  public void init() throws ServletException {
+    super.init();
+    Locator.forEach(Query.all( BlockedNumbers.class),n -> {
+      blockedNumbers.add(n.number);
+    });
+
+
+  }
+
+  @Override
+  public void destroy() {
+    super.destroy();
+    blockedNumbers.clear();
   }
 
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
@@ -92,7 +114,13 @@ public class Inbound extends TwiMLServlet {
         log.info(() -> "%s is a new inbound call %s->%s".formatted(copy.sid, caller, called));
         var vCid = Locator.$1(VerifiedCallerId.withPhoneNumber(called.endpoint()));
         copy.setDialedNumber(vCid);
-        if (vCid==null || vCid.isIvr()) {
+        if(blockedNumbers.contains(caller.asPhoneNumber().getEndpoint()) ) {
+          pop = false;
+          notify = false;
+          twiml = new VoiceResponse.Builder().reject(new Reject.Builder().reason(Reject.Reason.REJECTED).build()).build();
+          log.error(()->"rejected call from blacklist (%s)".formatted(caller.asPhoneNumber().getEndpoint()));
+
+        } else if (vCid==null || vCid.isIvr()) {
           pop = false; // nobody to pop the copy to yet, in IVR
           notify = false;
           copy.setDirection(QUEUE);
@@ -135,7 +163,9 @@ public class Inbound extends TwiMLServlet {
           notify = false;
           twiml = enqueue(new VoiceResponse.Builder(), caller, copy, vCid.getQueue(), vCid.getSource()).build();
         }
+
       }
+
       if (pop) {
         log.debug(() -> "Requesting call pop on %s for %s".formatted(copy.sid, copy.getAgent().getFullName()));
         Assignment.pop(copy.getAgent(), copy.sid);
