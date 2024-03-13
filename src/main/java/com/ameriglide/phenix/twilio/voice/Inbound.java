@@ -53,7 +53,7 @@ public class Inbound extends TwiMLServlet {
   @Override
   public void init() throws ServletException {
     super.init();
-    Locator.forEach(Query.all( BlockedNumbers.class),n -> {
+    Locator.forEach(Query.all( BlockedNumber.class), n -> {
       blockedNumbers.add(n.number);
     });
 
