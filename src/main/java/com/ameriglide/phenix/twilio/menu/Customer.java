@@ -2,10 +2,9 @@ package com.ameriglide.phenix.twilio.menu;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Party;
+import com.ameriglide.phenix.common.ProductLine;
 import com.ameriglide.phenix.common.Source;
-import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.twilio.voice.Inbound;
-import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
 import jakarta.servlet.http.HttpServletRequest;
@@ -59,11 +58,11 @@ public class Customer extends Menu.Step {
     var caller = Party.fromRequest(request, "Caller");
     switch (request.getParameter("Digits")) {
       case "1", "3" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, Locator.$(new WorkflowAssignment(CallType.SERVICE)).getQueue(),
-          Source.PHONE);
+        Inbound.enqueue(builder, caller, copy, router.getQueue("customer-service"),
+          ProductLine.undetermined.get(), Source.PHONE);
       });
       case "2" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, Locator.$(new WorkflowAssignment(CallType.SUPPORT)).getQueue(),
+        Inbound.enqueue(builder, caller, copy, router.getQueue("tech-support"), ProductLine.undetermined.get(),
           Source.PHONE);
       });
       default -> {

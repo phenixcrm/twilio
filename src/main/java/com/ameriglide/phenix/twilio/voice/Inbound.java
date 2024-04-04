@@ -2,6 +2,7 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
+import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
@@ -157,11 +158,15 @@ public class Inbound extends TwiMLServlet {
               .build();
           }
         } else { // brand new queue call
+          var productLine = Optionals.of(vCid.getProductLine()).orElseGet(ProductLine.undetermined);
           log.info(
-            () -> "%s is a new queue call %s->%s (%s)".formatted(copy.sid, caller, called, vCid.getQueue().getName()));
+            () -> "%s is a new queue call %s->%s (%s : %s)".formatted(copy.sid, caller, called,
+              vCid.getQueue().getName(),productLine.getName()));
           pop = false; // assignment will handle
           notify = false;
-          twiml = enqueue(new VoiceResponse.Builder(), caller, copy, vCid.getQueue(), vCid.getSource()).build();
+          twiml =
+            enqueue(new VoiceResponse.Builder(), caller, copy, vCid.getQueue(),
+              productLine, vCid.getSource()).build();
         }
 
       }
@@ -190,7 +195,7 @@ public class Inbound extends TwiMLServlet {
   }
 
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call copy, SkillQueue q,
-                                              Source src) {
+                                              ProductLine productLine, Source src) {
     var now = LocalDateTime.now();
     if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(copy.sid, q.getName()));
@@ -207,15 +212,14 @@ public class Inbound extends TwiMLServlet {
     }
     copy.setBusiness(q.getBusiness());
     var task = new JsonMap().$("VoiceCall", copy.sid);
-    var p = q.getProduct();
-    if (p==null) {
+    if (productLine==null) {
       var s = q.getSkill();
       if (s!=null) {
         task.$("type", q.getSkill().getValue());
       }
     } else {
       task.$("type", "sales");
-      task.$("product", p.getAbbreviation());
+      task.$("product", productLine.getAbbreviation());
     }
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {

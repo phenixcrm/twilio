@@ -20,12 +20,13 @@ dependencies {
     project(':sql'),
   )
   implementation(
-    'org.apache.commons:commons-csv:1.9.0',
-    'org.postgresql:postgresql:42.5.1',
-    'jakarta.servlet:jakarta.servlet-api:5.0.0',
-    'jakarta.websocket:jakarta.websocket-api:2.0.0',
-    'com.twilio.sdk:twilio:9.12.0',
-    'org.redisson:redisson:3.18.1',
-    'io.github.cdimascio:dotenv-java:2.3.1')
+    shared.postgresql,
+    shared.servlet,
+    shared.websocket,
+    shared.twilio,
+    shared.redis,
+    shared.dotenv,
+    shared.csv,
+  )
 
 }

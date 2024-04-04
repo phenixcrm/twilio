@@ -64,7 +64,7 @@ public class Transfer extends TwiMLServlet {
         var toQueue = new VoiceResponse.Builder();
         var caller = Party.fromRequest(request, "Caller");
         Locator.update(call, "Transfer", copy -> {
-          Inbound.enqueue(toQueue, caller, call, skillQueue, call.getSource());
+          Inbound.enqueue(toQueue, caller, call, skillQueue, call.getProductLine(), call.getSource());
         });
         respond(response, toQueue.build());
       }

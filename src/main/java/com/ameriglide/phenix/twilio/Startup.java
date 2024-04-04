@@ -18,7 +18,6 @@ import static com.ameriglide.phenix.types.WorkerState.OFFLINE;
 public class Startup extends com.ameriglide.phenix.servlet.Startup {
   private static final Log log = new Log();
   private final ScheduledExecutorService executor;
-
   public Startup() {
     executor = Executors.newSingleThreadScheduledExecutor();
   }

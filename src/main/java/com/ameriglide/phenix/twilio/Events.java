@@ -135,25 +135,28 @@ public class Events extends TwiMLServlet {
                 request.getParameter("WorkerName")));
             var reservation = request.getParameter("ReservationSid");
             var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
-            update(call, "Assignment", copy -> {
-              copy.setAgent(agent);
-              copy.setBlame(agent);
-            });
             if (attributes.containsKey("VoiceCall")) {
+              update(call, "Assignment", copy -> {
+                copy.setAgent(agent);
+                copy.setBlame(agent);
+              });
               router.voiceTask(task, reservation, new PhoneNumber(attributes.get("caller")), agent, call.sid);
             } else {
-              router.acceptReservation(task, reservation);
               var opp = attributes.containsKey("Lead") ? Locator.$(
                 new Opportunity(Integer.valueOf(attributes.get("Lead")))):call.getOpportunity();
               if (opp==null) {
                 log.error(() -> "Could not find opp for assignment: %s".formatted(attributes));
-              } else if (Agent.system().id.equals(opp.getAssignedTo().id)) {
-                update(opp, "Assignment", copy -> {
-                  copy.setAssignedTo(agent);
-                });
+              } else {
+                if (Agent.system().id.equals(opp.getAssignedTo().id)) {
+                  update(opp, "Assignment", copy -> {
+                    copy.setAssignedTo(agent);
+                  });
+                }
+                var assignment = new Leg(call, reservation);
+                assignment.setCreated(LocalDateTime.now());
+                assignment.setAgent(agent);
+                Locator.create("Events", assignment);
               }
-              log.debug(() -> "%s accepted %s for %s".formatted(agent.getFullName(), reservation, task));
-              router.completeTask(task);
             }
             Assignment.pop(agent, call.sid);
             Assignment.notify(call);
@@ -164,6 +167,9 @@ public class Events extends TwiMLServlet {
             debugTaskEvent(task, attributes, request,
               () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
                 request.getParameter("ResourceSid")));
+            if (!attributes.containsKey("VoiceCall")) {
+              router.completeTask(task);
+            }
           }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
           case "reservation.completed" -> {
@@ -226,13 +232,17 @@ public class Events extends TwiMLServlet {
         if (Strings.isNotEmpty(voiceCall)) {
           return voiceCall;
         }
-        var lead = task.get("Lead");
-        if (Strings.isNotEmpty(lead)) {
-          var opp = Locator.$(new Opportunity(Integer.valueOf(lead)));
-          if (opp!=null) {
-            var call = Locator.$1(Call.withOpportunity(opp));
-            if (call!=null) {
-              return call.sid;
+        if(router.digitalLeadsChannel.getSid().equals(request.getParameter("TaskChannelSid"))){
+          return request.getParameter("TaskSid");
+        } else {
+          var lead = task.get("Lead");
+          if (Strings.isNotEmpty(lead)) {
+            var opp = Locator.$(new Opportunity(Integer.valueOf(lead)));
+            if (opp!=null) {
+              var call = Locator.$1(Call.withOpportunity(opp));
+              if (call!=null) {
+                return call.sid;
+              }
             }
           }
         }

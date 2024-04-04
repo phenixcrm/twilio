@@ -2,13 +2,12 @@ package com.ameriglide.phenix.twilio.menu;
 
 import com.ameriglide.phenix.common.Call;
 import com.ameriglide.phenix.common.Party;
+import com.ameriglide.phenix.common.ProductLine;
 import com.ameriglide.phenix.common.Source;
-import com.ameriglide.phenix.common.WorkflowAssignment;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.voice.Inbound;
-import com.ameriglide.phenix.types.CallType;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
 import com.twilio.twiml.voice.Redirect;
@@ -60,8 +59,8 @@ public class Main extends Menu.Step {
               + "the best"
               + " solution, at the lowest possible price. We guarantee it! Ask your mobility specialist about our 110% "
               + "guarantee!"));
-          Inbound.enqueue(builder, caller, copy, Locator.$(new WorkflowAssignment(CallType.ANY)).getQueue(),
-            Source.PHONE);
+          Inbound.enqueue(builder, caller, copy, router.getQueue("customer-service"),
+            ProductLine.undetermined.get(),Source.PHONE);
         });
         return builder.build();
       }
