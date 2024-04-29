@@ -106,7 +106,8 @@ public class Events extends TwiMLServlet {
             () -> "entered %s queue".formatted(request.getParameter("TaskQueueName")));
           case "workflow.target-matched" -> debugTaskEvent(task, attributes, request,
             () -> "selected target %s".formatted(request.getParameter("WorkflowFilterName")));
-          case "workflow.entered" -> debugTaskEvent(task, attributes, request, () -> "entered workflow");
+          case "workflow.entered" -> debugTaskEvent(task, attributes, request,
+            () -> "entered workflow (%s)".formatted(request.getParameter("EventDescription")));
           case "task.completed" -> debugTaskEvent(task, attributes, request, () -> "task completed");
           case "task.canceled" -> {
             var reason = request.getParameter("Reason");
