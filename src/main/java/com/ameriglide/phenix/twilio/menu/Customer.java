@@ -58,11 +58,11 @@ public class Customer extends Menu.Step {
     var caller = Party.fromRequest(request, "Caller");
     switch (request.getParameter("Digits")) {
       case "1", "3" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, router.getQueue("customer-service"),
+        Inbound.enqueue(builder, caller, copy, router.getQueue("customerService"),
           ProductLine.undetermined.get(), Source.PHONE);
       });
       case "2" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, router.getQueue("tech-support"), ProductLine.undetermined.get(),
+        Inbound.enqueue(builder, caller, copy, router.getQueue("techSupport"), ProductLine.undetermined.get(),
           Source.PHONE);
       });
       default -> {
