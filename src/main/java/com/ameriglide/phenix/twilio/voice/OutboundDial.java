@@ -11,6 +11,7 @@ import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
 import com.ameriglide.phenix.types.WorkerState;
+import com.twilio.exception.ApiException;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
@@ -79,7 +80,11 @@ public class OutboundDial extends TwiMLServlet {
     }
     // call the caller and then connect to the called party
     log.debug(() -> "Setting %s to busy".formatted((call.getAgent().getFullName())));
-    router.setActivity(call.getAgent(), BUSY.activity());
+    try {
+      router.setActivity(call.getAgent(), BUSY.activity());
+    } catch (ApiException e) {
+      log.warn(e);
+    }
     var builder = new VoiceResponse.Builder();
     final boolean pop;
     if (called.isAgent()) {
