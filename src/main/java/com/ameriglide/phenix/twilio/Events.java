@@ -157,6 +157,7 @@ public class Events extends TwiMLServlet {
                 assignment.setCreated(LocalDateTime.now());
                 assignment.setAgent(agent);
                 Locator.create("Events", assignment);
+                router.acceptReservation(task,reservation);
               }
             }
             Assignment.pop(agent, call.sid);
