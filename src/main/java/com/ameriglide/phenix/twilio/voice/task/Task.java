@@ -15,6 +15,7 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import net.inetalliance.potion.Locator;
+import net.inetalliance.types.json.JsonMap;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -85,9 +86,10 @@ public class Task extends TwiMLServlet {
       Locator.update(leg, "Task", copy -> {
         copy.setAgent(params.agent());
       });
+      var task = JsonMap.parse(router.getTask(params.task()).getAttributes());
       var qs = params.toNamedValues();
       respond(response, new VoiceResponse.Builder()
-        .say(speak(queue.getAnnouncement()))
+        .say(speak(queue.getAnnouncement(task.get("product"))))
         .dial(new Dial.Builder()
           .answerOnBridge(true)
           .conference(Recorder
@@ -108,7 +110,7 @@ public class Task extends TwiMLServlet {
         copy.setAgent((params.agent()));
       });
       respond(response, new VoiceResponse.Builder()
-        .say(speak(queue.getAnnouncement() + " transfer"))
+        .say(speak(queue.getAnnouncement(null) + " transfer"))
         .dial(new Dial.Builder()
           .answerOnBridge(true)
           .conference(new Conference.Builder(params.reservation())
