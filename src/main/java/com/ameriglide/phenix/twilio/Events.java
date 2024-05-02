@@ -173,8 +173,6 @@ public class Events extends TwiMLServlet {
           }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
           case "reservation.completed" -> {
-            var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
-            Events.restorePrebusyIfPresent(agent);
             debugTaskEvent(task, attributes, request, () -> "reservation completed");
           }
           default -> debugTaskEvent(task, attributes, request, () -> request.getParameter("EventDescription"));
