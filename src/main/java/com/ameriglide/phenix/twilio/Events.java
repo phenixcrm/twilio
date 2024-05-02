@@ -169,9 +169,7 @@ public class Events extends TwiMLServlet {
             debugTaskEvent(task, attributes, request,
               () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
                 request.getParameter("ResourceSid")));
-            if (!attributes.containsKey("VoiceCall")) {
-              router.completeTask(task);
-            }
+            router.completeTask(task);
           }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
           case "reservation.completed" -> {
