@@ -64,6 +64,7 @@ public class Join extends TwiMLServlet {
             log.info(
               () -> "last agent left the conference %s, hanging up %s".formatted(params.reservation(), call.sid));
             router.hangup(agentLeg);
+            router.hangup(call.sid);
           }
         } else {
           log.debug(
@@ -78,7 +79,6 @@ public class Join extends TwiMLServlet {
         if (particpant.isAgent()) {
           conference.agentSids().put(particpant.agent().id, leg.sid);
           if (particpant.from==null) {
-            router.setActivity(particpant.agent(),BUSY.activity());
             log.debug(
               () -> "agent %s joined conference %s".formatted(particpant.agent().getFullName(), params.reservation()));
             try {
@@ -93,8 +93,8 @@ public class Join extends TwiMLServlet {
                 copy.setAgent(particpant.agent());
                 copy.setAnswered(LocalDateTime.now());
               });
-              if(conference.agentSids().size() > 1) {
-                Assignment.pop(particpant.agent(),call.sid);
+              if (conference.agentSids().size() > 1) {
+                Assignment.pop(particpant.agent(), call.sid);
                 Assignment.notify(call);
               }
             } catch (ApiException e) {
@@ -108,7 +108,7 @@ public class Join extends TwiMLServlet {
           } else {
             log.debug(() -> "warm join %s -> %s to %s for %s".formatted(particpant.from.getFullName(),
               particpant.agent().getFullName(), params.reservation(), params.task()));
-            router.setActivity(particpant.agent(),BUSY.activity());
+            router.setActivity(particpant.agent(), BUSY.activity());
             Locator.update(call, "Join", copy -> {
               copy.setAgent(particpant.agent());
             });
