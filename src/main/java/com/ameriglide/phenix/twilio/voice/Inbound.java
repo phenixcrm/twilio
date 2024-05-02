@@ -212,15 +212,8 @@ public class Inbound extends TwiMLServlet {
     }
     copy.setBusiness(q.getBusiness());
     var task = new JsonMap().$("VoiceCall", copy.sid);
-    if (productLine==null) {
-      var s = q.getSkill();
-      if (s!=null) {
-        task.$("type", q.getSkill().getValue());
-      }
-    } else {
-      task.$("type", "sales");
-      task.$("product", productLine.getAbbreviation());
-    }
+    task.$("type",q.getSkill().getValue());
+    task.$("product", Optionals.of(productLine).orElseGet(ProductLine.undetermined).getAbbreviation());
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Locator
