@@ -59,7 +59,7 @@ public class Main extends Menu.Step {
               + "the best"
               + " solution, at the lowest possible price. We guarantee it! Ask your mobility specialist about our 110% "
               + "guarantee!"));
-          Inbound.enqueue(builder, caller, copy, router.getQueue("customerService"),
+          Inbound.enqueue(builder, caller, copy, router.getQueue("sales"),
             ProductLine.undetermined.get(),Source.PHONE);
         });
         return builder.build();
