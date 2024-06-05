@@ -51,6 +51,23 @@ public class Events extends TwiMLServlet {
 
   }
 
+  public static void restorePrebusyIfPresent(final Agent agent) {
+    if (prebusy.containsKey(agent.id)) {
+      restorePrebusy(agent);
+    }
+  }
+
+  public static void restorePrebusy(final Agent agent) {
+    var old = prebusy.get(agent.id);
+    if (old==null) {
+      log.trace(() -> "pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(), AVAILABLE));
+      router.setActivity(agent, AVAILABLE.activity());
+    } else {
+      log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
+      router.setActivity(agent, old.activity());
+    }
+  }
+
   @Override
   protected void post(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
@@ -143,13 +160,13 @@ public class Events extends TwiMLServlet {
               });
               router.voiceTask(task, reservation, new PhoneNumber(attributes.get("caller")), agent, call.sid);
             } else {
-              var opp = attributes.containsKey("Lead") ? Locator.$(
-                new Opportunity(Integer.valueOf(attributes.get("Lead")))):call.getOpportunity();
-              if (opp==null) {
+              var lead = attributes.containsKey("Lead") ? Locator.$(
+                new Lead(Integer.valueOf(attributes.get("Lead")))):call.getOpportunity();
+              if (lead==null) {
                 log.error(() -> "Could not find opp for assignment: %s".formatted(attributes));
               } else {
-                if (Agent.system().id.equals(opp.getAssignedTo().id)) {
-                  update(opp, "Assignment", copy -> {
+                if (Agent.system().id.equals(lead.getAssignedTo().id)) {
+                  update(lead, "Assignment", copy -> {
                     copy.setAssignedTo(agent);
                   });
                 }
@@ -157,7 +174,7 @@ public class Events extends TwiMLServlet {
                 assignment.setCreated(LocalDateTime.now());
                 assignment.setAgent(agent);
                 Locator.create("Events", assignment);
-                router.acceptReservation(task,reservation);
+                router.acceptReservation(task, reservation);
               }
             }
             Assignment.pop(agent, call.sid);
@@ -172,9 +189,7 @@ public class Events extends TwiMLServlet {
             router.completeTask(task);
           }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
-          case "reservation.completed" -> {
-            debugTaskEvent(task, attributes, request, () -> "reservation completed");
-          }
+          case "reservation.completed" -> debugTaskEvent(task, attributes, request, () -> "reservation completed");
           default -> debugTaskEvent(task, attributes, request, () -> request.getParameter("EventDescription"));
 
         }
@@ -198,23 +213,6 @@ public class Events extends TwiMLServlet {
       request.getParameter("TaskAge"), request.getParameter("TaskAssignmentStatus"), msg.get()));
   }
 
-  public static void restorePrebusyIfPresent(final Agent agent) {
-    if (prebusy.containsKey(agent.id)) {
-      restorePrebusy(agent);
-    }
-  }
-
-  public static void restorePrebusy(final Agent agent) {
-    var old = prebusy.get(agent.id);
-    if (old==null) {
-      log.trace(() -> "pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(), AVAILABLE));
-      router.setActivity(agent, AVAILABLE.activity());
-    } else {
-      log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
-      router.setActivity(agent, old.activity());
-    }
-  }
-
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
@@ -230,14 +228,14 @@ public class Events extends TwiMLServlet {
         if (Strings.isNotEmpty(voiceCall)) {
           return voiceCall;
         }
-        if(router.digitalLeadsChannel.getSid().equals(request.getParameter("TaskChannelSid"))){
+        if (router.digitalLeadsChannel.getSid().equals(request.getParameter("TaskChannelSid"))) {
           return request.getParameter("TaskSid");
         } else {
-          var lead = task.get("Lead");
-          if (Strings.isNotEmpty(lead)) {
-            var opp = Locator.$(new Opportunity(Integer.valueOf(lead)));
-            if (opp!=null) {
-              var call = Locator.$1(Call.withOpportunity(opp));
+          var leadId = task.get("Lead");
+          if (Strings.isNotEmpty(leadId)) {
+            var lead = Locator.$(new Lead(Integer.valueOf(leadId)));
+            if (lead!=null) {
+              var call = Locator.$1(Call.withLead(lead));
               if (call!=null) {
                 return call.sid;
               }

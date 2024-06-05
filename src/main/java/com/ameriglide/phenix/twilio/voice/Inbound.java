@@ -217,9 +217,9 @@ public class Inbound extends TwiMLServlet {
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Locator
-        .$$(Opportunity.withContact(c).and(Opportunity.isDead.negate()).orderBy("created", DESCENDING).limit(5))
+        .$$(Lead.withContact(c).and(Lead.isDead.negate()).orderBy("created", DESCENDING).limit(5))
         .stream()
-        .map(Opportunity::getAssignedTo)
+        .map(Lead::getAssignedTo)
         .filter(Agent::isActive)
         .map(Agent::getSid)
         .filter(Strings::isNotEmpty)
