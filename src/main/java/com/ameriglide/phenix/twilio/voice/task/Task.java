@@ -95,7 +95,7 @@ public class Task extends TwiMLServlet {
           .conference(Recorder
             .conference(params.reservation(), call)
             .participantLabel(Integer.toString(params.agent().id))
-            .startConferenceOnEnter(false)
+            .startConferenceOnEnter(true)
             .endConferenceOnExit(false)
             .statusCallbackMethod(POST)
             .statusCallbackEvents(List.of(START, END, LEAVE, JOIN))
