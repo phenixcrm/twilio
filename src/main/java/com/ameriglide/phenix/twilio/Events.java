@@ -2,7 +2,6 @@ package com.ameriglide.phenix.twilio;
 
 import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
-import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.types.WorkerState;
@@ -23,14 +22,15 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import static com.ameriglide.phenix.core.Optionals.of;
 import static com.ameriglide.phenix.servlet.Startup.*;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.OPTIONAL;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
 import static com.ameriglide.phenix.types.Resolution.DROPPED;
-import static com.ameriglide.phenix.types.WorkerState.AVAILABLE;
 import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
+import static net.inetalliance.potion.Locator.$1;
 import static net.inetalliance.potion.Locator.update;
 
 @WebServlet("/twilio/events")
@@ -51,21 +51,22 @@ public class Events extends TwiMLServlet {
 
   }
 
-  public static void restorePrebusyIfPresent(final Agent agent) {
-    if (prebusy.containsKey(agent.id)) {
-      restorePrebusy(agent);
+  public static void restorePrebusy(final Agent agent) {
+    var isStillBusy = getActiveCall(agent) != null;
+    if (isStillBusy) {
+      log.trace(()->"not restoring pre-busy state for still-busy agent %s".formatted(agent.getFullName()));
+      return;
     }
+    var old = prebusy.computeIfAbsent(agent.id, key -> WorkerState.AVAILABLE);
+    log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
+    router.setActivity(agent, old.activity());
   }
 
-  public static void restorePrebusy(final Agent agent) {
-    var old = prebusy.get(agent.id);
-    if (old==null) {
-      log.trace(() -> "pre-busy state unknown for %s, assuming %s".formatted(agent.getFullName(), AVAILABLE));
-      router.setActivity(agent, AVAILABLE.activity());
-    } else {
-      log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
-      router.setActivity(agent, old.activity());
-    }
+  private static Call getActiveCall(Agent agent) {
+    return of($1(Call.isActive.and(Call.withAgent(agent))))
+      .orElseGet(() ->
+        of($1(Call.isActive.join(Leg.class, "call").and(Leg.withAgent(agent))))
+          .map(leg->leg.call).orElse(null));
   }
 
   @Override
@@ -81,13 +82,12 @@ public class Events extends TwiMLServlet {
             var from = WorkerState.from(request.getParameter("WorkerPreviousActivitySid"));
             var to = WorkerState.from(request.getParameter("WorkerActivitySid"));
             var workerSid = request.getParameter("WorkerSid");
-            var agent = Locator.$1(Agent.withSid(workerSid));
+            var agent = $1(Agent.withSid(workerSid));
             try {
 
               Locator.create("Events",
                 new ActivityChange(request.getParameter("Sid"), utcSecondsToDateTime(request.getParameter("Timestamp")),
-                  from, Optionals
-                  .of(request.getParameter("WorkerTimeInPreviousActivity"))
+                  from, of(request.getParameter("WorkerTimeInPreviousActivity"))
                   .filter(Strings::isNotEmpty)
                   .map(Long::parseLong)
                   .orElse(null), to, agent));
@@ -152,7 +152,7 @@ public class Events extends TwiMLServlet {
               () -> "created reservation %s for %s".formatted(request.getParameter("ResourceSid"),
                 request.getParameter("WorkerName")));
             var reservation = request.getParameter("ReservationSid");
-            var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
+            var agent = $1(Agent.withSid(request.getParameter("WorkerSid")));
             if (attributes.containsKey("VoiceCall")) {
               update(call, "Assignment", copy -> {
                 copy.setAgent(agent);
@@ -181,7 +181,7 @@ public class Events extends TwiMLServlet {
             Assignment.notify(call);
           }
           case "reservation.accepted" -> {
-            var agent = Locator.$1(Agent.withSid(request.getParameter("WorkerSid")));
+            var agent = $1(Agent.withSid(request.getParameter("WorkerSid")));
             router.setActivity(agent, BUSY.activity());
             debugTaskEvent(task, attributes, request,
               () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
@@ -235,7 +235,7 @@ public class Events extends TwiMLServlet {
           if (Strings.isNotEmpty(leadId)) {
             var lead = Locator.$(new Lead(Integer.valueOf(leadId)));
             if (lead!=null) {
-              var call = Locator.$1(Call.withLead(lead));
+              var call = $1(Call.withLead(lead));
               if (call!=null) {
                 return call.sid;
               }

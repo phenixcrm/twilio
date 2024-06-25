@@ -113,7 +113,7 @@ public class Status extends TwiMLServlet {
             });
             Events.restorePrebusy(call.getAgent());
             if(legCopy.getAgent() != null) {
-              Events.restorePrebusyIfPresent(legCopy.getAgent());
+              Events.restorePrebusy(legCopy.getAgent());
             }
           }
           case "in-progress", "answered" -> {

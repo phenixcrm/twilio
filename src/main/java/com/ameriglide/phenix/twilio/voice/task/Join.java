@@ -138,7 +138,7 @@ public class Join extends TwiMLServlet {
         router.completeTask(params.task());
         var agentLeg = call.getLastLeg();
         log.debug(() -> "Ending agent leg %s".formatted(agentLeg.sid));
-        Events.restorePrebusyIfPresent(agentLeg.getAgent());
+        Events.restorePrebusy(agentLeg.getAgent());
         Locator.update(call, "Join", copy -> {
           copy.setResolution(Resolution.ANSWERED);
           copy.setTalkTime(
