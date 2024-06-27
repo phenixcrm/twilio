@@ -2,8 +2,10 @@ package com.ameriglide.phenix.twilio.voice;
 
 import com.ameriglide.phenix.DialMode;
 import com.ameriglide.phenix.common.*;
+import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.servlet.exception.NotFoundException;
+import com.ameriglide.phenix.twilio.Assignment;
 import com.ameriglide.phenix.twilio.Startup;
 import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.VoiceResponse;
@@ -21,7 +23,7 @@ public class Transfer extends TwiMLServlet {
   public Transfer() {
     super(method -> new Config(THROW, CREATE));
   }
-
+private static final Log log = new Log();
   @Override
   protected void get(final HttpServletRequest request, final HttpServletResponse response, Call call, Leg leg) throws
     Exception {
@@ -39,6 +41,8 @@ public class Transfer extends TwiMLServlet {
             "could not find worker for agent [%d] with sid [%s]".formatted(agent.id, agentId));
         }
         if (WorkerState.from(worker)==WorkerState.AVAILABLE) {
+          log.info(()->"Popping transfer %s->%s".formatted(call.getAgent().getFullName(),agent.getFullName()));
+          Assignment.pop(agent,call.sid);
           respond(response, new VoiceResponse.Builder()
             .dial(Status.watch(new Party(agent)).build())
             .redirect(toVoicemail(

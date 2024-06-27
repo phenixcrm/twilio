@@ -4,7 +4,9 @@ import com.ameriglide.phenix.common.*;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
+import com.ameriglide.phenix.types.Resolution;
 import com.ameriglide.phenix.types.WorkerState;
+import com.twilio.http.HttpMethod;
 import com.twilio.rest.taskrouter.v1.workspace.Worker;
 import com.twilio.type.PhoneNumber;
 import jakarta.servlet.annotation.WebServlet;
@@ -20,6 +22,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.ameriglide.phenix.core.Optionals.of;
@@ -27,6 +30,7 @@ import static com.ameriglide.phenix.servlet.Startup.*;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.OPTIONAL;
 import static com.ameriglide.phenix.servlet.topics.HudTopic.PRODUCE;
+import static com.ameriglide.phenix.types.Resolution.ANSWERED;
 import static com.ameriglide.phenix.types.Resolution.DROPPED;
 import static com.ameriglide.phenix.types.WorkerState.BUSY;
 import static jakarta.servlet.http.HttpServletResponse.SC_NO_CONTENT;
@@ -42,6 +46,10 @@ public class Events extends TwiMLServlet {
     super(method -> new Config(OPTIONAL, IGNORE));
   }
 
+  public Events(final Function<HttpMethod, Config> config) {
+    super(config);
+  }
+
   public static WorkerState knownWorker(final Agent agent, final Worker worker) {
     var workerState = WorkerState.from(worker);
     if (workerState!=BUSY) {
@@ -52,10 +60,12 @@ public class Events extends TwiMLServlet {
   }
 
   public static void restorePrebusy(final Agent agent) {
-    var isStillBusy = getActiveCall(agent) != null;
-    if (isStillBusy) {
-      log.trace(()->"not restoring pre-busy state for still-busy agent %s".formatted(agent.getFullName()));
-      return;
+    var activeCall = getActiveCall(agent);
+    if (activeCall!=null) {
+      if (verifyActiveCall(activeCall) &&
+        Objects.equals(agent,activeCall.getActiveAgent())) {
+        return;
+      }
     }
     var old = prebusy.computeIfAbsent(agent.id, key -> WorkerState.AVAILABLE);
     log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
@@ -63,10 +73,93 @@ public class Events extends TwiMLServlet {
   }
 
   private static Call getActiveCall(Agent agent) {
-    return of($1(Call.isActive.and(Call.withAgent(agent))))
-      .orElseGet(() ->
-        of($1(Call.isActive.join(Leg.class, "call").and(Leg.withAgent(agent))))
-          .map(leg->leg.call).orElse(null));
+    return of($1(Call.isActiveVoiceCall.and(Call.withAgent(agent)))).orElseGet(
+      () -> of($1(Call.isActiveVoiceCall.join(Leg.class, "call").and(Leg.withAgent(agent))))
+        .map(leg -> leg.call)
+        .orElse(null));
+  }
+
+  public static boolean verifyActiveCall(final Call activeCall) {
+    var call = router.getCall(activeCall.sid);
+    if (call==null) {
+      log.warn(() -> "could not find twilio call for %s".formatted(activeCall.sid));
+      closeCall(activeCall, null, null, null);
+      return false;
+    } else {
+      switch (call.getStatus()) {
+        case QUEUED, RINGING, IN_PROGRESS -> {
+          // legit call
+          log.trace(() -> "%s is an active call".formatted(activeCall.sid));
+          return true;
+        }
+        default -> {
+          var leg = activeCall.getActiveLeg();
+          if (leg==null) {
+            log.warn(() -> "Call %s has no active leg, manually closing".formatted(activeCall.sid));
+            closeCall(activeCall, call);
+            return false;
+          }
+          var twilioLeg = router.getCall(leg.sid);
+          if (twilioLeg==null) {
+            log.warn(() -> "could not find twilio call for active leg %s, manually closing".formatted(leg.sid));
+            closeCall(activeCall, call, leg);
+            return false;
+          } else {
+            switch (twilioLeg.getStatus()) {
+              case QUEUED, RINGING, IN_PROGRESS -> {
+                log.trace(() -> "%s is an active leg".formatted(leg.sid));
+                return true;
+              }
+              default -> {
+                log.warn(() -> "Active leg %s is inactive in twilio, manually closing".formatted(leg.sid));
+                closeCall(activeCall, call, leg, twilioLeg);
+                return false;
+              }
+
+            }
+          }
+
+        }
+
+      }
+    }
+  }
+
+  public static void closeCall(final Call activeCall, final com.twilio.rest.api.v2010.account.Call twilioCall,
+                               final Leg activeLeg, final com.twilio.rest.api.v2010.account.Call twilioLeg) {
+    update(activeCall, "Events", (copy) -> {
+      if (twilioCall==null) {
+        copy.setResolution(ANSWERED);
+      } else {
+        copy.setResolution(switch (twilioCall.getStatus()) {
+          case COMPLETED -> Resolution.ANSWERED;
+          case BUSY, FAILED, NO_ANSWER, CANCELED -> Resolution.DROPPED;
+          default -> throw new IllegalStateException();
+        });
+      }
+    });
+    if (activeLeg!=null) {
+      if (twilioLeg==null) {
+        Locator.update(activeLeg, "Events", copy -> {
+          copy.setEnded(twilioCall.getEndTime().toLocalDateTime());
+        });
+      } else {
+        Locator.update(activeLeg, "Events", copy -> {
+          copy.setEnded(twilioLeg.getEndTime().toLocalDateTime());
+        });
+
+      }
+    }
+  }
+
+  public static void closeCall(final Call activeCall, final com.twilio.rest.api.v2010.account.Call twilioCall) {
+    closeCall(activeCall, twilioCall, null, null);
+  }
+
+  public static void closeCall(final Call activeCall, final com.twilio.rest.api.v2010.account.Call twilioCall,
+                               final Leg activeLeg) {
+    closeCall(activeCall, twilioCall, activeLeg, null);
+
   }
 
   @Override
@@ -130,7 +223,7 @@ public class Events extends TwiMLServlet {
             var reason = request.getParameter("Reason");
             debugTaskEvent(task, attributes, request, () -> "cancelled (%s)".formatted(reason));
             if (attributes.containsKey("VoiceCall")) {
-              Locator.update(call, "Events", copy -> {
+              update(call, "Events", copy -> {
                 copy.setResolution(DROPPED);
               });
               if ("Task TTL Exceeded".equals(reason)) {
@@ -139,7 +232,7 @@ public class Events extends TwiMLServlet {
                   + "and we will return your call as soon as possible");
               }
             } else if (attributes.containsKey("Lead")) {
-              Locator.update(call, "Events", copy -> {
+              update(call, "Events", copy -> {
                 copy.setResolution(DROPPED);
                 copy.setBlame(Agent.system());
                 copy.setDuration(ChronoUnit.SECONDS.between(copy.getCreated(), LocalDateTime.now()));

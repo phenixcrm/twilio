@@ -8,6 +8,7 @@ import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
 import com.ameriglide.phenix.core.Strings;
 import com.ameriglide.phenix.servlet.TwiMLServlet;
+import com.ameriglide.phenix.twilio.Events;
 import com.ameriglide.phenix.types.CallDirection;
 import com.ameriglide.phenix.types.WorkerState;
 import com.twilio.twiml.VoiceResponse;
@@ -78,6 +79,9 @@ public class Complete extends TwiMLServlet {
     var status = request.getParameter("DialCallStatus");
     switch (status) {
       case "completed" -> {
+        if(called.isAgent()) {
+          Events.restorePrebusy(called.agent());
+        }
         if (!"completed".equals(request.getParameter("CallStatus"))) {
           respond(response, new VoiceResponse.Builder().hangup(hangup).build());
         }
