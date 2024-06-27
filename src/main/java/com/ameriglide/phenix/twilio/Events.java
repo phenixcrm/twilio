@@ -60,16 +60,15 @@ public class Events extends TwiMLServlet {
   }
 
   public static void restorePrebusy(final Agent agent) {
-    var activeCall = getActiveCall(agent);
-    if (activeCall!=null) {
-      if (verifyActiveCall(activeCall) &&
-        Objects.equals(agent,activeCall.getActiveAgent())) {
-        return;
-      }
+    var currentState = WorkerState.from(router.getWorker(agent.getSid()));
+    if(currentState==BUSY) {
+      var old = prebusy.computeIfAbsent(agent.id, key -> WorkerState.AVAILABLE);
+      log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
+      router.setActivity(agent, old.activity());
+    } else {
+      log.trace(() -> "not restoring pre-busy state for non-busy %s (%s)".formatted(agent.getFullName(),
+        currentState));
     }
-    var old = prebusy.computeIfAbsent(agent.id, key -> WorkerState.AVAILABLE);
-    log.trace(() -> "restoring pre-busy state for %s (%s)".formatted(agent.getFullName(), old));
-    router.setActivity(agent, old.activity());
   }
 
   private static Call getActiveCall(Agent agent) {
