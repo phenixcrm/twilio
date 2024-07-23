@@ -27,6 +27,7 @@ import net.inetalliance.types.json.JsonMap;
 import java.io.IOException;
 import java.time.DayOfWeek;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -196,7 +197,7 @@ public class Inbound extends TwiMLServlet {
 
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call copy, SkillQueue q,
                                               ProductLine productLine, Source src) {
-    var now = LocalDateTime.now();
+    var now = LocalDateTime.now().atZone(ZoneId.of("America/New_York"));
     if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(copy.sid, q.getName()));
       return builder.redirect(toVoicemail(
