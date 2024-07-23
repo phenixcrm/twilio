@@ -197,7 +197,7 @@ public class Inbound extends TwiMLServlet {
 
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call copy, SkillQueue q,
                                               ProductLine productLine, Source src) {
-    var now = LocalDateTime.now().atZone(ZoneId.of("America/New_York"));
+    var now = LocalDateTime.now(ZoneId.of("America/New_York"));
     if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(copy.sid, q.getName()));
       return builder.redirect(toVoicemail(
