@@ -166,7 +166,7 @@ public class Inbound extends TwiMLServlet {
           notify = false;
           twiml =
             enqueue(new VoiceResponse.Builder(), caller, copy, vCid.getQueue(),
-              productLine, vCid.getSource(),call.getChannel()).build();
+              productLine, vCid.getSource(),copy.getChannel()).build();
         }
 
       }
@@ -216,7 +216,8 @@ public class Inbound extends TwiMLServlet {
     var task = new JsonMap().$("VoiceCall", copy.sid);
     task.$("type",q.getSkill().getValue());
     task.$("product", Optionals.of(productLine).orElseGet(ProductLine.undetermined).getAbbreviation());
-    task.$("channel", channel.getAbbreviation());
+    //todo: this Retail should be replaced with something better
+    task.$("channel", channel== null ? "Retail" : channel.getAbbreviation());
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Locator
