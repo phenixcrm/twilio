@@ -56,19 +56,18 @@ public class Customer extends Menu.Step {
   VoiceResponse process(HttpServletRequest request, HttpServletResponse response, Call call) {
     var builder = new VoiceResponse.Builder();
     var caller = Party.fromRequest(request, "Caller");
-    switch (request.getParameter("Digits")) {
-      case "1", "3" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, router.getQueue("customerService"),
-          ProductLine.undetermined.get(), Source.PHONE);
-      });
-      case "2" -> Locator.update(call, "Customer", copy -> {
-        Inbound.enqueue(builder, caller, copy, router.getQueue("techSupport"), ProductLine.undetermined.get(),
-          Source.PHONE);
-      });
-      default -> {
-        return new VoiceResponse.Builder().redirect(toVoicemail(badInput)).build();
-      }
+
+    var queue = switch (request.getParameter("Digits")) {
+      case "1", "3" -> router.getQueue("customerService");
+      case "2" -> router.getQueue("techSupport");
+      default -> null;
+    };
+    if (queue==null) {
+      return new VoiceResponse.Builder().redirect(toVoicemail(badInput)).build();
     }
+    Locator.update(call, "Customer", copy -> {
+      Inbound.enqueue(builder, caller, copy, queue, ProductLine.undetermined.get(), Source.PHONE, queue.getChannel());
+    });
     return builder.build();
   }
 }

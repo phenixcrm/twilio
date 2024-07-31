@@ -55,9 +55,7 @@ public class Inbound extends TwiMLServlet {
   @Override
   public void init() throws ServletException {
     super.init();
-    Locator.forEach(Query.all( BlockedNumber.class), n -> {
-      blockedNumbers.add(n.number);
-    });
+    Locator.forEach(Query.all( BlockedNumber.class), n -> blockedNumbers.add(n.number));
 
 
   }
@@ -159,6 +157,7 @@ public class Inbound extends TwiMLServlet {
               .build();
           }
         } else { // brand new queue call
+          copy.setChannel(vCid.getQueue().getChannel());
           var productLine = Optionals.of(vCid.getProductLine()).orElseGet(ProductLine.undetermined);
           log.info(
             () -> "%s is a new queue call %s->%s (%s : %s)".formatted(copy.sid, caller, called,
@@ -167,7 +166,7 @@ public class Inbound extends TwiMLServlet {
           notify = false;
           twiml =
             enqueue(new VoiceResponse.Builder(), caller, copy, vCid.getQueue(),
-              productLine, vCid.getSource()).build();
+              productLine, vCid.getSource(),call.getChannel()).build();
         }
 
       }
@@ -196,7 +195,7 @@ public class Inbound extends TwiMLServlet {
   }
 
   public static VoiceResponse.Builder enqueue(VoiceResponse.Builder builder, Party caller, Call copy, SkillQueue q,
-                                              ProductLine productLine, Source src) {
+                                              ProductLine productLine, Source src, Channel channel) {
     var now = LocalDateTime.now(ZoneId.of("America/New_York"));
     if (router.enforceHours && (now.getDayOfWeek()==DayOfWeek.SUNDAY || now.getHour() < 8 || now.getHour() > 20)) {
       log.info(() -> "%s is being sent to after-hours voicemail for %s".formatted(copy.sid, q.getName()));
@@ -211,10 +210,13 @@ public class Inbound extends TwiMLServlet {
     if (copy.getSource()==null) { // don't overwrite an upstream source, just fall back to the enqueued source
       copy.setSource(src);
     }
-    copy.setBusiness(q.getBusiness());
+    if(copy.getChannel()==null) {
+      copy.setChannel(q.getChannel());
+    }
     var task = new JsonMap().$("VoiceCall", copy.sid);
     task.$("type",q.getSkill().getValue());
     task.$("product", Optionals.of(productLine).orElseGet(ProductLine.undetermined).getAbbreviation());
+    task.$("channel", channel.getAbbreviation());
     var c = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
     if (c!=null) {
       task.$("preferred", Locator

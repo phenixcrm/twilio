@@ -68,7 +68,7 @@ private static final Log log = new Log();
         var toQueue = new VoiceResponse.Builder();
         var caller = Party.fromRequest(request, "Caller");
         Locator.update(call, "Transfer", copy -> {
-          Inbound.enqueue(toQueue, caller, call, skillQueue, call.getProductLine(), call.getSource());
+          Inbound.enqueue(toQueue, caller, call, skillQueue, call.getProductLine(), call.getSource(),call.getChannel());
         });
         respond(response, toQueue.build());
       }

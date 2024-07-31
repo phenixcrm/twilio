@@ -52,15 +52,15 @@ public class Main extends Menu.Step {
         return Menu.enter("customer", request, response);
       }
       default -> {
-        Locator.update(call, "Main", copy -> {
+        Locator.update(call, "Main", (copy) -> {
           builder.say(TwiMLServlet.speak(
             "Did you know? AmeraGlide is quickly becoming the recognized leader in the mobility"
               + " and accessibility industry. We have the largest selection of products to ensure our customers get "
               + "the best"
               + " solution, at the lowest possible price. We guarantee it! Ask your mobility specialist about our 110% "
               + "guarantee!"));
-          Inbound.enqueue(builder, caller, copy, router.getQueue("sales"),
-            ProductLine.undetermined.get(),Source.PHONE);
+          Inbound.enqueue(builder, caller, copy, router.getQueue("sales"), ProductLine.undetermined.get(), Source.PHONE,
+            copy.getChannel());
         });
         return builder.build();
       }
