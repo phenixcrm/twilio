@@ -6,7 +6,6 @@ import com.ameriglide.phenix.common.ProductLine;
 import com.ameriglide.phenix.common.Source;
 import com.ameriglide.phenix.core.Log;
 import com.ameriglide.phenix.core.Optionals;
-import com.ameriglide.phenix.servlet.TwiMLServlet;
 import com.ameriglide.phenix.twilio.voice.Inbound;
 import com.twilio.twiml.VoiceResponse;
 import com.twilio.twiml.voice.Gather;
@@ -53,12 +52,6 @@ public class Main extends Menu.Step {
       }
       default -> {
         Locator.update(call, "Main", (copy) -> {
-          builder.say(TwiMLServlet.speak(
-            "Did you know? AmeraGlide is quickly becoming the recognized leader in the mobility"
-              + " and accessibility industry. We have the largest selection of products to ensure our customers get "
-              + "the best"
-              + " solution, at the lowest possible price. We guarantee it! Ask your mobility specialist about our 110% "
-              + "guarantee!"));
           Inbound.enqueue(builder, caller, copy, router.getQueue("sales"), ProductLine.undetermined.get(), Source.PHONE,
             copy.getChannel());
         });
