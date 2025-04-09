@@ -33,7 +33,7 @@ public class Complete extends TwiMLServlet {
     super(method -> new Config(THROW, IGNORE));
   }
 
-  public static void finish(HttpServletRequest request, Call call) {
+  public static void finish(HttpServletRequest request, Call call, Leg leg) {
     var duration = Optionals
       .of(request.getParameter("RecordingDuration"))
       .filter(Strings::isNotEmpty)
@@ -45,7 +45,13 @@ public class Complete extends TwiMLServlet {
     if (call.getDirection()==CallDirection.INTERNAL) {
       call.setBlame(null);
     }
-    call.setRecordingSid(request.getParameter("RecordingSid"));
+    if(leg != null && call.getRecordingSid() != null) {
+      Locator.update(leg, "Status", copy -> {
+       copy.setRecordingSid(request.getParameter("RecordingSid"));
+      });
+    } else {
+      call.setRecordingSid(request.getParameter("RecordingSid"));
+    }
     var agent = call.getAgent();
     var worker = router.getWorker(agent.getSid());
     if (worker==null) {

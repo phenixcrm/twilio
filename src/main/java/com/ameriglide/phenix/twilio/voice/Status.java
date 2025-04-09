@@ -67,8 +67,7 @@ public class Status extends TwiMLServlet {
                       final Leg leg) {
     // this is a recording update
     Locator.update(call, "Status", copy -> {
-      Complete.finish(request, copy);
-
+      Complete.finish(request, copy, leg);
     });
   }
 
