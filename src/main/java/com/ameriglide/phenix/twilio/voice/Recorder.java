@@ -86,18 +86,26 @@ public class Recorder extends TwiMLServlet {
     switch (request.getParameter("RecordingStatus")) {
       case "completed" -> {
         var recording = request.getParameter("RecordingSid");
-        Locator.update(call, "Record", copy -> {
-          if (isNotEmpty(recording)) {
-            var voicemail = "true".equals(request.getParameter("voicemail"));
+        var voicemail = "true".equals(request.getParameter("voicemail"));
+        if (isNotEmpty(recording)) {
+          if (leg==null || voicemail) {
             log.debug(() -> "added %s for %s (%s sec)".formatted(voicemail ? "voicemail":"recording", call.sid,
               request.getParameter("RecordingDuration")));
-            if (voicemail) {
-              copy.setVoiceMailSid(recording);
-            } else {
+            Locator.update(call, "Record", copy -> {
+              if (voicemail) {
+                copy.setVoiceMailSid(recording);
+              } else {
+                copy.setRecordingSid(recording);
+              }
+            });
+          } else {
+            log.debug(() -> "added recording for %s -> %s (%s sec)".formatted(call.sid, leg.sid,
+              request.getParameter("RecordingDuration")));
+            Locator.update(leg, "Record", copy -> {
               copy.setRecordingSid(recording);
-            }
+            });
           }
-        });
+        }
       }
     }
   }
