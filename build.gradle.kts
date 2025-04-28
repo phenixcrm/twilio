@@ -11,7 +11,7 @@ dependencies {
   )
   implementation(project(":common"))
   implementation(project(":core"))
-  implementation(project(":potion"))
+  implementation(project(":potion:api"))
   implementation(project(":validation"))
   implementation(project(":types"))
   implementation(project(":util"))
