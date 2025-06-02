@@ -19,6 +19,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.val;
 import net.inetalliance.potion.Locator;
 import net.inetalliance.potion.query.Query;
 import net.inetalliance.types.json.Json;
@@ -31,6 +32,7 @@ import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.ameriglide.phenix.common.Source.FORM;
 import static com.ameriglide.phenix.servlet.Startup.router;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.CREATE;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
@@ -126,6 +128,23 @@ public class Inbound extends TwiMLServlet {
           copy.setDirection(QUEUE);
           if (vCid!=null) {
             copy.setSource(vCid.getSource());
+            if(vCid.getSource() == FORM) {
+              log.info(() -> "%s is a new call from %s form".formatted(copy.sid, caller.endpoint()));
+              val contact = Locator.$1(Contact.withPhoneNumber(caller.endpoint()));
+              if(contact==null) {
+                log.warn(()->"unable to find contact for %s".formatted(caller.endpoint()));
+              } else {
+                copy.setContact(contact);
+                val opp = Locator.$1(Lead.withContact(contact).and(Lead.isDead.negate())
+                        .and(Lead.withSource(FORM)).orderBy("created", DESCENDING).limit(1));
+                if(opp == null) {
+                  log.warn(()->"unable to find open form lead for %s".formatted(caller.endpoint()));
+                }
+                copy.setOpportunity(opp);
+                
+              }
+
+            }
           }
           // main IVR
           twiml = Menu.enter("main", request, response);
