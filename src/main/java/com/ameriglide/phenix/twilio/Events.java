@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static com.ameriglide.phenix.common.Source.FORM;
 import static com.ameriglide.phenix.core.Optionals.of;
 import static com.ameriglide.phenix.servlet.Startup.*;
 import static com.ameriglide.phenix.servlet.TwiMLServlet.Op.IGNORE;
@@ -279,6 +280,19 @@ public class Events extends TwiMLServlet {
               () -> "%s accepted reservation %s".formatted(request.getParameter("WorkerName"),
                 request.getParameter("ResourceSid")));
             router.completeTask(task);
+            if(call.getSource() == FORM) {
+              var lead = call.getOpportunity();
+              if(lead == null) {
+                log.warn(()->"Somehow we have a form call %s with no lead?".formatted(call.sid));
+              } else {
+                Locator.update(lead, "Events", copy -> {
+                  copy.setAssignedTo(agent);
+                });
+                log.info(()->"Auto-assigning form call %s to %s".formatted(call.sid, agent.getFullName()));
+
+              }
+
+            }
           }
           case "reservation.updated" -> debugTaskEvent(task, attributes, request, () -> "reservation updated");
           case "reservation.completed" -> debugTaskEvent(task, attributes, request, () -> "reservation completed");
